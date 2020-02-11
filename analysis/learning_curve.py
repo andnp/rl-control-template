@@ -26,14 +26,15 @@ def getBest(results):
 def generatePlot(ax, exp_paths, bounds):
     for exp_path in exp_paths:
         exp = ExperimentModel.load(exp_path)
-        raise Exception('Set the name of the results file saved from these experiments')
 
-        results = loadResults(exp, 'results.npy')
+        results = loadResults(exp, 'return_summary.npy')
         results = whereParameterEquals(results, 'initial_value', 0)
 
         best = getBest(results)
 
-        b = plotBest(best, ax, label='TD', color='yellow', dashed=False)
+        alg = exp.agent
+
+        b = plotBest(best, ax, label=alg, color=colors[alg], dashed=False)
         bounds.append(b)
 
 
