@@ -1,0 +1,16 @@
+results/
+results.tar
+.tmp/
+env/
+accum/
+__pycache__
+test.json
+*.pyc
+.vscode
+
+paper/*
+!paper/paper.tex
+!paper/paper.bib
+!paper/figures/
+result_writeup/
+!result_writeup/writeup.tex
