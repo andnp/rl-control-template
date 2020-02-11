@@ -29,18 +29,6 @@ def save(exp, name, type='pdf'):
     plt.savefig(final_path)
     return final_path
 
-def plot(results, ax, color=None, label=None, labelParams=None, bestBy='end', dashed=False):
-    if bestBy == 'end':
-        best = getBest(results, percent=0.1)
-    elif bestBy == 'auc':
-        best = getBest(results)
-    else:
-        raise Exception('I can only get best by "end" or "auc"')
-
-    print(best.exp.agent, best.params)
-    return plotBest(best, ax, color, label, labelParams=labelParams, dashed=dashed)
-
-
 def getMaxY(arr):
     m = arr[0]
     for y in arr:
@@ -63,8 +51,8 @@ def plotBest(best, ax, window=1, smoothing=0, color=None, label=None, alpha=0.4,
         l = [f'{key}-{best.params[key]}' for key in labelParams]
         params = ' ' + ' '.join(l)
 
-    mean = best.mean()
-    ste = best.stderr()
+    mean = best.load()[0]
+    ste = best.load()[1]
 
     if len(mean.shape) == 1:
         mean = np.reshape(mean, (-1, 1))

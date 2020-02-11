@@ -21,9 +21,8 @@ experiment_paths = sys.argv[5:]
 
 # TODO: change name of results file
 def generateMissing(paths):
-    raise Exception('Set the name of the results file saved from these experiments')
     for i, p in enumerate(paths):
-        summary_path = p + '/result.npy'
+        summary_path = p + '/return_summary.npy'
         if not os.path.exists(summary_path):
             yield i
 

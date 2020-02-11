@@ -6,27 +6,38 @@ import matplotlib.pyplot as plt
 sys.path.append(os.getcwd())
 
 from itertools import tee
-from src.analysis.learning_curve import plot, save, plotBest
+from src.analysis.learning_curve import save, plotBest
+from src.analysis.colors import colors
 from src.experiment import ExperimentModel
-from PyExpUtils.results.results import loadResults, whereParameterGreaterEq, whereParameterEquals, find, getBest
+from PyExpUtils.results.results import loadResults, whereParameterGreaterEq, whereParameterEquals, find
 from PyExpUtils.utils.arrays import first
 from PyExpUtils.utils.path import fileName, up
 
-error = 'rmsve'
-problem = 'ShortChainInverted4060'
-algorithm = 'td'
+def getBest(results):
+    best = first(results)
+
+    for r in results:
+        a = r.load()[0]
+        b = best.load()[0]
+        am = np.mean(a)
+        bm = np.mean(b)
+        if am > bm:
+            best = r
+
+    return best
 
 def generatePlot(ax, exp_paths, bounds):
     for exp_path in exp_paths:
         exp = ExperimentModel.load(exp_path)
-        raise Exception('Set the name of the results file saved from these experiments')
 
-        results = loadResults(exp, 'results.npy')
+        results = loadResults(exp, 'return_summary.npy')
         results = whereParameterEquals(results, 'initial_value', 0)
 
         best = getBest(results)
 
-        b = plotBest(best, ax, label='TD', color='yellow', dashed=False)
+        alg = exp.agent
+
+        b = plotBest(best, ax, label=alg, color=colors[alg], dashed=False)
         bounds.append(b)
 
 
@@ -35,13 +46,9 @@ if __name__ == "__main__":
 
     bounds = []
 
-    exp_paths = glob.glob(f'experiments/exp/{problem}/{algorithm}/*.json')
+    exp_paths = sys.argv[1:]
 
     generatePlot(axes, exp_paths, bounds)
-
-    axes.set_title(f'{problem}')
-
-    # axes[i, j].set_ylim([lower, upper])
 
     plt.show()
     exit()
@@ -52,4 +59,4 @@ if __name__ == "__main__":
     width = 8
     height = (24/5)
     f.set_size_inches((width, height), forward=False)
-    plt.savefig(f'{save_path}/{algorithm}_{error}_learning-curves.png', dpi=100)
+    plt.savefig(f'{save_path}/learning-curve.png', dpi=100)

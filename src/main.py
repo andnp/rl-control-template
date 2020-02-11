@@ -5,46 +5,72 @@ sys.path.append(os.getcwd())
 
 from RlGlue import RlGlue
 from src.experiment import ExperimentModel
+from src.problems.registry import getProblem
+from src.utils.Collector import Collector
+from src.utils.rlglue import OneStepWrapper
 
 from RlGlue.environment import BaseEnvironment
 from RlGlue.agent import BaseAgent
 
 if len(sys.argv) < 3:
     print('run again with:')
-    print('python3 src/main.py <path/to/description.json> <idx>')
+    print('python3 src/main.py <runs> <path/to/description.json> <idx>')
     exit(1)
 
-max_steps = 100
+runs = int(sys.argv[1])
+exp = ExperimentModel.load(sys.argv[2])
+idx = int(sys.argv[3])
 
-exp = ExperimentModel.load()
-idx = int(sys.argv[2])
+max_steps = exp.max_steps
 
-# figure out which run number of these parameter settings this is
-run = exp.getRun(idx)
+collector = Collector()
+broke = False
+for run in range(runs):
+    # set random seeds accordingly
+    np.random.seed(run)
 
-# set random seeds accordingly
-np.random.seed(run)
+    Problem = getProblem(exp.problem)
+    problem = Problem(exp, idx)
 
-# TODO: replace with real agent class and environment class
-glue = RlGlue(BaseAgent, BaseEnvironment)
+    agent = problem.getAgent()
+    env = problem.getEnvironment()
 
-# Run the experiment
-rewards = []
-glue.start()
-for step in range(max_steps):
-    # call agent.step and environment.step
-    r, o, a, t = glue.step()
-    
-    # collect data throughout run
-    rewards.append(r)
+    wrapper = OneStepWrapper(agent, problem.getGamma(), problem.rep)
 
-    # if terminal state, then restart the interface
-    if t:
-        glue.start()
+    glue = RlGlue(wrapper, env)
 
+    # Run the experiment
+    rewards = []
+    for episode in range(exp.episodes):
+        glue.total_reward = 0
+        glue.runEpisode(max_steps)
+
+        # if the weights diverge to nan, just quit. This run doesn't matter to me anyways now.
+        if np.isnan(np.sum(agent.w)):
+            collector.fillRest(np.nan, exp.episodes)
+            broke = True
+            break
+
+        collector.collect('return', glue.total_reward)
+
+    collector.reset()
+    if broke:
+        break
+
+return_data = collector.getStats('return')
+
+# import matplotlib.pyplot as plt
+# from src.utils.plotting import plot
+# fig, ax1 = plt.subplots(1)
+
+# plot(ax1, return_data)
+# ax1.set_title('Return')
+
+# plt.show()
+# exit()
 
 # save results to disk
-save_context = exp.buildSaveContext(idx, base="results")
+save_context = exp.buildSaveContext(idx, base="./")
 save_context.ensureExists()
 
-np.save(save_context.resolve('rewards.npy'), rewards)
+np.save(save_context.resolve('return_summary.npy'), return_data)
