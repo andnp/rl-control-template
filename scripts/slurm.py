@@ -65,7 +65,7 @@ for path in experiment_paths:
     size = exp.numPermutations()
 
     # get a list of all expected results paths
-    paths = listResultsPaths(exp, runs)
+    paths = listResultsPaths(exp)
     paths = printProgress(size, paths)
     # get a list of the indices whose results paths are missing
     indices = generateMissing(paths)

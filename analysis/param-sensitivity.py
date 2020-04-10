@@ -6,42 +6,22 @@ import matplotlib.pyplot as plt
 sys.path.append(os.getcwd())
 
 from itertools import tee
-from src.analysis.learning_curve import save, plotBest
+from src.analysis.sensitivity_curve import plotSensitivity
 from src.analysis.colors import colors
 from src.experiment import ExperimentModel
-from PyExpUtils.results.results import loadResults, whereParameterGreaterEq, whereParameterEquals, find
+from PyExpUtils.results.results import loadResults, whereParameterEquals, splitOverParameter
 from PyExpUtils.utils.arrays import first
 from PyExpUtils.utils.path import fileName, up
 
-def getBest(results):
-    best = first(results)
-
-    for r in results:
-        a = r.load()[0]
-        b = best.load()[0]
-        am = np.mean(a)
-        bm = np.mean(b)
-        if am > bm:
-            best = r
-
-    return best
+param = 'alpha'
 
 def generatePlot(ax, exp_paths, bounds):
     for exp_path in exp_paths:
         exp = ExperimentModel.load(exp_path)
 
         results = loadResults(exp, 'return_summary.npy')
-        # optionally force epsilon to be 0.15
-        # results = whereParameterEquals(results, 'epsilon', 0.15)
 
-        best = getBest(results)
-        print('best parameters:', exp_path)
-        print(best.params)
-
-        alg = exp.agent
-
-        b = plotBest(best, ax, label=alg, color=colors[alg], dashed=False)
-        bounds.append(b)
+        plotSensitivity(results, param, ax, label=exp.agent)
 
 
 if __name__ == "__main__":
@@ -53,6 +33,8 @@ if __name__ == "__main__":
 
     generatePlot(axes, exp_paths, bounds)
 
+    plt.legend()
+
     plt.show()
     exit()
 
@@ -62,4 +44,4 @@ if __name__ == "__main__":
     width = 8
     height = (24/5)
     f.set_size_inches((width, height), forward=False)
-    plt.savefig(f'{save_path}/learning-curve.png', dpi=100)
+    plt.savefig(f'{save_path}/{param}-sensitivity.png', dpi=100)
