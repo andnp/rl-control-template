@@ -6,6 +6,8 @@ This repository is a github template repository.
 This means that you can click the green `Use this template` button on the github page for this repo to start a new repo that is a copy of this one.
 The difference between a template and a clone is that changes made in a template repository are not forwarded to the child repositories.
 
+
+---
 ## Setting up repo
 **This codebase only works with python 3.6 and above.**
 
@@ -25,11 +27,29 @@ Or you need to set up a virtual environment:
 virtualenv -p python3 env
 ```
 
+
+---
 ## Step-by-step example
-Here is a quick guide to run an already existent experiment on compute canada.
+To get set-up on compute canada:
 ```bash
 ssh $cedar
-cd path/to/library
+# You should replace this github url with your repo that is a copy of the template repo
+git clone https://github.com/andnp/rl-control-template.git
+cd rl-control-template
+
+# build virtual environment
+virtualenv -p python3 env
+. env/bin/activate
+
+# install dependencies
+pip install -r requirements.txt
+```
+
+Here is a quick guide to run an already existent experiment on compute canada.
+This should run a parameter sweep over `alpha` and `epsilon` for e-greedy SARSA on MountainCar then plot the learning curve of the parameter setting that achieves the highest return averaged over 10 runs with standard error bars.
+```bash
+ssh $cedar
+cd rl-control-template
 git pull # make sure you are up to date
 
 # remove any old results that you might have lying around
@@ -42,7 +62,7 @@ rm -rf results &
 nano clusters/cedar.json
 
 # run the experiment
-python scripts/slurm.py clusters/cedar.json src/main.py ./ 100 experiments/myExperiment/*.json
+python scripts/slurm.py clusters/cedar.json src/main.py ./ 10 experiments/example/*.json
 
 # wait for a while
 # then zip and download results
@@ -50,13 +70,15 @@ tar -cavf results.tar.bz2 results
 
 # go back to your laptop
 exit
-scp $cedar:~/path/to/library/results.tar.bz2 ./
+scp $cedar:~/rl-control-template/results.tar.bz2 ./
 tar -xvf results.tar.bz2
 
 # plot your results
-python analysis/learning_curve.py experiments/myExperiment/*.json
+python analysis/learning_curve.py experiments/example/*.json
 ```
 
+
+---
 ## Dependencies
 This template repo depends on a few other shared libraries to make code-splitting and sharing a little easier (for me).
 The documentation and source code can be found at the following links.
@@ -64,6 +86,8 @@ The documentation and source code can be found at the following links.
 * [PyExpUtils](https://github.com/andnp/pyexputils) - a library containing the experiment running framework
 * [PyFixedReps](https://github.com/andnp/pyfixedreps) - a few fixed representation algorithms implemented in python (e.g. tile-coding, rbfs, etc.)
 
+
+---
 ## Organization Patterns
 
 ### Experiments
@@ -148,6 +172,8 @@ If you request `tasksPerNode=4`, then each node will run 4 tasks in **serial**.
 In total, 64 tasks will be scheduled for one compute canada job with this configuration.
 If there are 256 total tasks that need to be run, then 4 compute canada jobs will be scheduled.
 
+
+---
 ## Running the code
 There are a few layers for running the code.
 The most simple layer is directly running a single experiment for a single parameter setting.
@@ -201,3 +227,58 @@ python analysis/learning_curve.py ./experiments/idealH/gtd2_not.json
 ```
 python analysis/learning_curve.py ./experiments/idealH/gtd2_not.json ./experiments/idealH/gtd2.json
 ```
+
+
+---
+## FAQs
+
+* What are the best settings for `clusters/cedar.json`?
+
+  As per the best practices document from compute canada, I make sure my CC jobs _always_ take at least one hour to complete.
+  Because many of my **tasks** take about 5 minutes, I generally set the `tasksPerNode` parameter to ~16 to accomplish this (16*5m = 1h20m).
+  I also try to make sure my jobs take no longer than 12hrs to complete (if I can help it).
+  The optimal---if I can wait---is to make the jobs take just under 3hrs so that my jobs are in the highest priority queue, but put the least strain on the scheduler.
+  Always leave a bit of wiggle room.
+
+  There is a fine balance between CC job size and the number of CC jobs scheduled.
+  Large CC jobs take longer to be scheduled, but a large number of small jobs put unnecessary strain on the scheduler.
+  I try to limit my number of scheduled jobs to ~100 (we have a max of 2000 per person).
+  To figure out how many tasks will be scheduled for an experiment, you can run:
+```python
+import src.experiment.ExperimentModel as Experiment
+
+exp = Experiment.load('experiments/path/to.json')
+print(exp.numPermutations())
+```
+
+* How do you get your code from your laptop to the compute canada server?
+
+  Git is your friend.
+  All of my code is always checked-in to git, and I have my experiment code cloned on my laptop and on the CC server.
+  I use GitHub (or sometime bitbucket) private repos to house the code remotely.
+  I make liberal use of git tags to mark checkpoints in the repo's lifespan (e.g. before I add a new contributor: `git tag before-aj-messed-things-up`, or when I submit a paper `git tag icml-2020`).
+  This helps maintain my sanity when code changes and evolves over time, because now all codebase states are still accessible.
+
+* What if one of my jobs fails or some of the tasks did not finish in time?
+
+  One of the major advantages to the way this experiment framework is set up is that you can trivially determine exactly which results are missing after scheduling a job.
+  In fact, the job scheduling script in this template repo already handles this issue by default.
+  If you have results that are missing, simply run the scheduling script again with no changes and it will schedule only the missing tasks.
+
+* I'm running the scheduling script, but it exits immediately and no jobs are scheduled?
+
+  See the above.
+  Chances are, your `results/` folder is not empty so there are no "missing results" to be scheduled.
+  If you want to force the scheduling script to go forward anyways, either run `mv results results.old` or `rm -rf results/` to get rid of the results (or some other less aggressive strategy).
+
+* Can your code use GPUs?
+
+  Yup! Just change the bash script that is generated in `scripts/slurm.py` to request GPUs from compute canada.
+
+* Can your code use multi-threading?
+
+  Currently the scheduling script is not designed to handle multi-threading.
+  Because my tasks tend to be relatively short (a few hours at most), and because it is generally better to have many single-threaded processes than one multi-threaded process, I have had no need to design a script to handle multi-threading.
+  However, the underlying experiment framework, `PyExpUtils`, **does** have support for handling multi-threaded tasks.
+  You will need to make a few modifications to `scripts/slurm.py` to change how many tasks are bundled into each job to account for using multiple threads.
+  Talk to Andy if you need help!
