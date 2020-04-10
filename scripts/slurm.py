@@ -33,7 +33,7 @@ cd {cwd}
 slurm_path = sys.argv[1]
 executable = sys.argv[2]
 base_path = sys.argv[3]
-runs = sys.argv[4]
+runs = int(sys.argv[4])
 experiment_paths = sys.argv[5:]
 
 # generates a list of indices whose results are missing
