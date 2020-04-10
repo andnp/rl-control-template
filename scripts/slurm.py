@@ -62,7 +62,7 @@ for path in experiment_paths:
     slurm = Slurm.fromFile(slurm_path)
 
     # figure out how many indices to use
-    size = exp.numPermutations() * runs
+    size = exp.numPermutations()
 
     # get a list of all expected results paths
     paths = listResultsPaths(exp, runs)
@@ -77,8 +77,10 @@ for path in experiment_paths:
         l = list(g)
         print("scheduling:", path, l)
 
+        # build the executable string
+        runner = f'python {executable} {runs} {path} '
         # generate the gnu-parallel command for dispatching to many CPUs across server nodes
-        parallel = Slurm.buildParallel(executable, l, {
+        parallel = Slurm.buildParallel(runner, l, {
             'ntasks': slurm.tasks,
             'nodes-per-process': 1,
             'threads-per-process': 1, # <-- if you need multiple threads for a single process, change this number (NOTE: the rest of the scheduling logic does not know how to handle this yet)
