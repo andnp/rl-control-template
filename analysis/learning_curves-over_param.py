@@ -5,10 +5,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 sys.path.append(os.getcwd())
 
-from src.analysis.learning_curve import plotBest
+from itertools import tee
+from src.analysis.learning_curve import save, plotBest
 from src.experiment import ExperimentModel
-from PyExpUtils.results.results import loadResults, whereParameterGreaterEq, whereParameterEquals, find
+from PyExpUtils.results.results import loadResults, whereParameterEquals, splitOverParameter
 from PyExpUtils.utils.arrays import first
+from PyExpUtils.utils.path import fileName, up
+
+PARAM = 'alpha'
 
 def getBest(results):
     best = first(results)
@@ -28,17 +32,19 @@ def generatePlot(ax, exp_paths, bounds):
         exp = ExperimentModel.load(exp_path)
 
         results = loadResults(exp, 'return_summary.npy')
-        # optionally force epsilon to be 0.15
-        # results = whereParameterEquals(results, 'epsilon', 0.15)
+        results = whereParameterEquals(results, 'epsilon', 0.05)
 
-        best = getBest(results)
-        print('best parameters:', exp_path)
-        print(best.params)
+        param_values = splitOverParameter(results, PARAM)
 
-        alg = exp.agent
+        for key, param_results in param_values.items():
+            best = getBest(param_results)
+            print('best parameters:', exp_path, f'{PARAM}={key}')
+            print(best.params)
 
-        b = plotBest(best, ax, label=alg, color=colors[alg], dashed=False)
-        bounds.append(b)
+            alg = exp.agent
+
+            b = plotBest(best, ax, label=alg + f' {PARAM}={key}', dashed=False)
+            bounds.append(b)
 
 
 if __name__ == "__main__":
