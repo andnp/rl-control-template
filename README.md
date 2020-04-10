@@ -49,7 +49,7 @@ Here is a quick guide to run an already existent experiment on compute canada.
 This should run a parameter sweep over `alpha` and `epsilon` for e-greedy SARSA on MountainCar then plot the learning curve of the parameter setting that achieves the highest return averaged over 10 runs with standard error bars.
 ```bash
 ssh $cedar
-cd path/to/library
+cd rl-control-template
 git pull # make sure you are up to date
 
 # remove any old results that you might have lying around
@@ -70,7 +70,7 @@ tar -cavf results.tar.bz2 results
 
 # go back to your laptop
 exit
-scp $cedar:~/path/to/library/results.tar.bz2 ./
+scp $cedar:~/rl-control-template/results.tar.bz2 ./
 tar -xvf results.tar.bz2
 
 # plot your results
