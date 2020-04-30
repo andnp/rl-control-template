@@ -1,5 +1,5 @@
 import numpy as np
-from src.utils.random import argmax, choice
+from PyExpUtils.utils.random import argmax, choice
 
 class SARSA:
     def __init__(self, features, actions, params):

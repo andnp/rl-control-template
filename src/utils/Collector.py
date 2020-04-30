@@ -1,5 +1,5 @@
 import numpy as np
-from src.utils.arrays import fillRest, last
+from PyExpUtils.utils.arrays import fillRest, last
 
 class Collector:
     def __init__(self):
