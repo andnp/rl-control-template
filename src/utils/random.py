@@ -23,7 +23,7 @@ def choice(arr):
 # argmax that breaks ties randomly
 def argmax(vals):
     top = vals[0]
-    ties = [0]
+    ties = []
     for i, v in enumerate(vals):
         if v > top:
             top = v
