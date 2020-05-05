@@ -23,7 +23,7 @@ class SARSA:
 
     def update(self, x, a, xp, r, gamma):
         q_a = self.w[a].dot(x)
-        ap = self.selectAction(x)
+        ap = self.selectAction(xp)
         qp_ap = self.w[ap].dot(xp)
 
         g = r + gamma * qp_ap
