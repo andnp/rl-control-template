@@ -13,9 +13,3 @@ test.json
 
 # ignore editor settings
 .vscode
-
-# ignore all of the latex stuff
-paper/*
-!paper/paper.tex
-!paper/paper.bib
-!paper/figures/

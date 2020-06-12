@@ -1,0 +1,22 @@
+[MASTER]
+init-hook='import sys; sys.path.append("./")'
+
+[MESSAGE CONTROL]
+disable=
+    wrong-import-position,
+    wrong-import-order,
+    ungrouped-imports,
+
+    invalid-name,
+    too-many-arguments,
+    too-many-locals,
+    too-many-instance-attributes,
+
+    missing-module-docstring,
+    missing-function-docstring,
+    missing-class-docstring,
+
+    line-too-long,
+    unidiomatic-typecheck,
+    arguments-differ,
+    bare-except,

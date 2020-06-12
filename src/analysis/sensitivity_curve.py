@@ -35,8 +35,6 @@ def getSensitivityData(results, param, reducer='best', bestBy='auc'):
     y = np.array([metric(best[k].mean()) for k in x])
     e = np.array([metric(best[k].stderr()) for k in x])
 
-    y = np.array(y)
-    e = np.array(e)
     e[np.isnan(y)] = 0.000001
     y[np.isnan(y)] = 100000
 
