@@ -1,6 +1,8 @@
 git+https://github.com/andnp/RlGlue@0.2#egg=RlGlue
-git+https://github.com/andnp/PyExpUtils@1.0#egg=PyExpUtils
+git+https://github.com/andnp/PyExpUtils@2.1#egg=PyExpUtils
 git+https://github.com/andnp/PyFixedReps@0.1#egg=PyFixedReps
 
 matplotlib>=2.2.3
 pylint>=2.0.0
+mypy>=0.770
+git+https://github.com/numpy/numpy-stubs

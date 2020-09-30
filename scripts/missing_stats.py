@@ -35,7 +35,7 @@ for path in experiment_paths:
     print(path)
     exp = Experiment.load(path)
 
-    size = exp.permutations()
+    size = exp.numPermutations()
 
     paths = listResultsPaths(exp, 1)
     indices = generateMissing(paths)

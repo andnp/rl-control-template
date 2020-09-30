@@ -1,0 +1,7 @@
+{
+    "account": "rrg-whitem",
+    "time": "2:59:00",
+    "cores": 64,
+    "memPerCpu": "2G",
+    "sequential": 8
+}

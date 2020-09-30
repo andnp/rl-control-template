@@ -1,11 +1,23 @@
 import numpy as np
-import os
-import matplotlib.pyplot as plt
 from itertools import tee
 
-from PyExpUtils.results.results import getBest, sliceOverParameter, splitOverParameter, find
+from PyExpUtils.results.results import sliceOverParameter, splitOverParameter, find
+from PyExpUtils.utils.arrays import first
 
-def getSensitivityData(results, param, steps_percent=1, reducer='best', overStream=None, bestBy='end'):
+def getBest(results):
+    best = first(results)
+
+    for r in results:
+        a = r.load()[0]
+        b = best.load()[0]
+        am = np.mean(a)
+        bm = np.mean(b)
+        if am < bm:
+            best = r
+
+    return best
+
+def getSensitivityData(results, param, steps_percent=1, reducer='best', overStream=None, bestBy='auc'):
     useOtherStream = overStream is not None
     overStream = overStream if useOtherStream else results
 
@@ -13,11 +25,11 @@ def getSensitivityData(results, param, steps_percent=1, reducer='best', overStre
         split = splitOverParameter(overStream, param)
         bestStream = {}
         for k in split:
-            bestStream[k] = getBest(split[k], percent=steps_percent)
+            bestStream[k] = getBest(split[k])
 
     elif reducer == 'slice':
         l, r = tee(overStream)
-        best = getBest(l, percent=steps_percent)
+        best = getBest(l)
 
         bestStream = sliceOverParameter(r, best, param)
 
@@ -39,6 +51,8 @@ def getSensitivityData(results, param, steps_percent=1, reducer='best', overStre
         metric = lambda m: np.mean(m[-int(m.shape[0] * .1):])
     elif bestBy == 'auc':
         metric = np.mean
+    else:
+        raise NotImplementedError('Only now how to plot by "auc" or "end"')
 
     y = np.array([metric(best[k].load()[0]) for k in x])
     e = np.array([metric(best[k].load()[1]) for k in x])
@@ -48,7 +62,7 @@ def getSensitivityData(results, param, steps_percent=1, reducer='best', overStre
 
     return x, y, e
 
-def plotSensitivity(results, param, ax, reducer='best', stderr=True, overStream=None, color=None, label=None, dashed=False, bestBy='end'):
+def plotSensitivity(results, param, ax, reducer='best', stderr=True, overStream=None, color=None, label=None, dashed=False, bestBy='auc'):
     x, y, e = getSensitivityData(results, param, reducer=reducer, overStream=overStream, bestBy=bestBy)
 
     if dashed:

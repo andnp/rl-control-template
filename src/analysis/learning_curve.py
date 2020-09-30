@@ -1,8 +1,5 @@
-import os
 import numpy as np
 from PyExpUtils.utils.generator import group
-from PyExpUtils.results.results import getBest
-import matplotlib.pyplot as plt
 
 def windowAverage(arr, window):
     for g in group(arr, window):
@@ -45,9 +42,6 @@ def plotBest(best, ax, window=1, smoothing=0, color=None, label=None, alpha=0.4,
 
     for i in range(mean.shape[1]):
         lineplot(ax, mean[:, i], stderr=ste[:, i], smoothing=smoothing, window=window, color=color, label=label[i] + params, alpha=alpha, alphaMain=alphaMain, dashed=dashed[i])
-
-    if len(mean.shape) > 1 and mean.shape[1] > 1:
-        return (np.nan, np.nan)
 
 def lineplot(ax, mean, window=1, smoothing=0, stderr=None, color=None, label=None, alpha=0.4, alphaMain=1, dashed=None):
     if dashed:
