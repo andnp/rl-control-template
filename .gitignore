@@ -1,0 +1,21 @@
+# ignore all results folders
+results/
+results.tar
+.tmp/
+
+# ignore python caches
+env/
+__pycache__
+*.pyc
+
+# ignore test experiments
+test.json
+
+# ignore editor settings
+.vscode
+
+# ignore all of the latex stuff
+paper/*
+!paper/paper.tex
+!paper/paper.bib
+!paper/figures/
