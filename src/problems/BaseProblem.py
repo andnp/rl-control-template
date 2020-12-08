@@ -1,8 +1,8 @@
-import numpy as np
+from experiment.ExperimentModel import ExperimentModel
 from src.agents.registry import getAgent
 
 class BaseProblem:
-    def __init__(self, exp, idx):
+    def __init__(self, exp: ExperimentModel, idx: int):
         self.exp = exp
         self.idx = idx
 
@@ -13,6 +13,8 @@ class BaseProblem:
         self.env = None
         self.rep = None
         self.gamma = None
+
+        self.seed = exp.getRun(idx)
 
         self.features = 0
         self.actions = 0
@@ -28,8 +30,5 @@ class BaseProblem:
 
     def getAgent(self):
         Agent = getAgent(self.exp.agent)
-        self.agent = Agent(self.features, self.actions, self.params)
+        self.agent = Agent(self.features, self.actions, self.params, self.seed)
         return self.agent
-
-    def getSteps(self):
-        return self.exp.steps

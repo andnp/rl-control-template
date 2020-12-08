@@ -6,12 +6,14 @@ STAY = 1
 FORWARD = 2
 
 class MountainCar(BaseEnvironment):
-    def __init__(self):
-        self.position = -0.6 + np.random.random() * 0.2
+    def __init__(self, seed: int):
+        self.random = np.random.RandomState(seed)
+
+        self.position = -0.6 + self.random.random() * 0.2
         self.velocity = 0.0
 
     def start(self):
-        self.position = -0.6 + np.random.random() * 0.2
+        self.position = -0.6 + self.random.random() * 0.2
         self.velocity = 0.0
 
         return (self.position, self.velocity)

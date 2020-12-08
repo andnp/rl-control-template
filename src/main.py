@@ -9,9 +9,6 @@ from src.problems.registry import getProblem
 from src.utils.Collector import Collector
 from src.utils.rlglue import OneStepWrapper
 
-from RlGlue.environment import BaseEnvironment
-from RlGlue.agent import BaseAgent
-
 if len(sys.argv) < 3:
     print('run again with:')
     print('python3 src/main.py <runs> <path/to/description.json> <idx>')
@@ -29,8 +26,9 @@ for run in range(runs):
     # set random seeds accordingly
     np.random.seed(run)
 
+    inner_idx = exp.numPermutations() * run + idx
     Problem = getProblem(exp.problem)
-    problem = Problem(exp, idx)
+    problem = Problem(exp, inner_idx)
 
     agent = problem.getAgent()
     env = problem.getEnvironment()
@@ -57,20 +55,32 @@ for run in range(runs):
     if broke:
         break
 
-return_data = collector.getStats('return')
 
 # import matplotlib.pyplot as plt
 # from src.utils.plotting import plot
 # fig, ax1 = plt.subplots(1)
 
+# return_data = collector.getStats('return')
 # plot(ax1, return_data)
 # ax1.set_title('Return')
 
 # plt.show()
 # exit()
 
-# save results to disk
-save_context = exp.buildSaveContext(idx, base="./")
-save_context.ensureExists()
+from PyExpUtils.results.backends.csv import saveResults
+from PyExpUtils.utils.arrays import downsample
 
-np.save(save_context.resolve('return_summary.npy'), return_data)
+for key in collector.all_data:
+    data = collector.all_data[key]
+    for run, datum in enumerate(data):
+        inner_idx = exp.numPermutations() * run + idx
+
+        # heavily downsample the data to reduce storage costs
+        # we don't need all of the data-points for plotting anyways
+        # method='window' returns a window average
+        # method='subsample' returns evenly spaced samples from array
+        # num=1000 makes sure final array is of length 1000
+        # percent=0.1 makes sure final array is 10% of the original length (only one of `num` or `percent` can be specified)
+        datum = downsample(datum, num=500, method='window')
+
+        saveResults(exp, inner_idx, key, datum, precision=2)

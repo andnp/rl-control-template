@@ -1,11 +1,14 @@
+from typing import Dict
 import numpy as np
 from PyExpUtils.utils.random import argmax, choice
 
 class SARSA:
-    def __init__(self, features, actions, params):
+    def __init__(self, features: int, actions: int, params: Dict, seed: int):
         self.features = features
         self.actions = actions
         self.params = params
+
+        self.random = np.random.RandomState(seed)
 
         # define parameter contract
         self.alpha = params['alpha']
@@ -15,9 +18,9 @@ class SARSA:
         self.w = np.zeros((actions, features))
 
     def selectAction(self, x):
-        p = np.random.rand()
+        p = self.random.rand()
         if p < self.epsilon:
-            return choice(np.arange(self.actions))
+            return choice(np.arange(self.actions), self.random)
 
         return argmax(self.w.dot(x))
 

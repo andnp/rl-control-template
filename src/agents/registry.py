@@ -1,4 +1,4 @@
-from src.agents.SARSA import SARSA
+from agents.SARSA import SARSA
 
 def getAgent(name):
     if name == 'SARSA':
