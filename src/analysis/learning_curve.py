@@ -1,9 +1,5 @@
 import numpy as np
-from PyExpUtils.utils.generator import group
-
-def windowAverage(arr, window):
-    for g in group(arr, window):
-        yield np.mean(g)
+from PyExpUtils.utils.generator import windowAverage
 
 def smoothingAverage(arr, p=0.5):
     m = 0
@@ -16,10 +12,10 @@ def smoothingAverage(arr, p=0.5):
             yield m
 
 def confidenceInterval(mean, stderr):
-    return (mean - stderr, mean + stderr)
+    return (mean - 2.0 * stderr, mean + 2.0 * stderr)
 
 
-def plotBest(best, ax, window=1, smoothing=0, color=None, label=None, alpha=0.4, alphaMain=1, stderr=True, labelParams=None, dashed=False):
+def plotBest(best, ax, window=1, smoothing=0, color=None, label=None, alpha=0.4, alphaMain=1, labelParams=None, dashed=False):
     label = label if label is not None else best.exp.agent
 
     params = ''
