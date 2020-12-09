@@ -6,7 +6,7 @@ sys.path.append(os.getcwd())
 from RlGlue import RlGlue
 from src.experiment import ExperimentModel
 from src.problems.registry import getProblem
-from src.utils.Collector import Collector
+from PyExpUtils.utils.Collector import Collector
 from src.utils.rlglue import OneStepWrapper
 
 if len(sys.argv) < 3:
