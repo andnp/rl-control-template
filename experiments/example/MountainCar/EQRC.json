@@ -1,8 +1,8 @@
 {
     "agent": "EQRC",
-    "problem": "Cartpole",
-    "total_steps": 200000,
-    "episode_cutoff": -1,
+    "problem": "MountainCar",
+    "total_steps": 100000,
+    "episode_cutoff": 500,
     "metaParameters": {
         "epsilon": 0.1,
         "buffer_size": 4000,
@@ -17,7 +17,7 @@
 
         "representation": {
             "type": "TwoLayerRelu",
-            "hidden": 64
+            "hidden": 32
         }
     }
 }

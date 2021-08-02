@@ -1,11 +1,10 @@
 {
-    "agent": "DQN",
+    "agent": "EQRC",
     "problem": "Cartpole",
-    "total_steps": 200000,
-    "episode_cutoff": 500,
+    "total_steps": 100000,
+    "episode_cutoff": -1,
     "metaParameters": {
         "epsilon": 0.1,
-        "target_refresh": 32,
         "buffer_size": 4000,
         "batch": 32,
 

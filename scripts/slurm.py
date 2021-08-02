@@ -3,17 +3,17 @@ import sys
 import os
 sys.path.append(os.getcwd() + '/src')
 
+import math
+import numpy as np
 import experiment.ExperimentModel as Experiment
 import PyExpUtils.runner.Slurm as Slurm
-from PyExpUtils.results.indices import listIndices
-from PyExpUtils.results.paths import listResultsPaths
-from PyExpUtils.utils.arrays import first
+import PyExpUtils.runner.parallel as Parallel
+from PyExpUtils.results.backends.h5 import detectMissingIndices
 from PyExpUtils.utils.generator import group
-from PyExpUtils.utils.csv import buildCsvParams
 
 if len(sys.argv) < 4:
     print('Please run again using')
-    print('python -m scripts.scriptName [path/to/slurm-def] [src/executable.py] [base_path] [runs] [paths/to/descriptions]...')
+    print('python scripts/scriptName.py [path/to/slurm-def] [src/executable.py] [base_path] [runs] [paths/to/descriptions]...')
     exit(0)
 
 # -------------------------------
@@ -42,16 +42,6 @@ base_path = sys.argv[3]
 runs = int(sys.argv[4])
 experiment_paths = sys.argv[5:]
 
-# generates a list of indices whose results are missing
-def generateMissing(exp, indices, data):
-    for idx in indices:
-        csv_params = buildCsvParams(exp, idx)
-        run = exp.getRun(idx)
-        key = f'{csv_params},{run}'
-        if not any(s.startswith(key) for s in data):
-            yield idx
-
-
 # prints a progress bar
 def printProgress(size, it):
     for i, _ in enumerate(it):
@@ -60,49 +50,72 @@ def printProgress(size, it):
             print()
         yield _
 
+def estimateUsage(indices, groupSize, cores, hours):
+    jobs = math.ceil(len(indices) / groupSize)
+
+    total_cores = jobs * cores
+    core_hours = total_cores * hours
+
+    core_years = core_hours / (24 * 365)
+    allocation = 724
+
+    return core_years, 100 * core_years / allocation
+
+def gatherMissing(experiment_paths, runs, groupSize, cores, total_hours):
+    out = {}
+
+    approximate_cost = np.zeros(2)
+
+    for path in experiment_paths:
+        exp = Experiment.load(path)
+
+        indices = detectMissingIndices(exp, runs, 'step_return.h5')
+        indices = sorted(indices)
+        out[path] = indices
+
+        approximate_cost += estimateUsage(indices, groupSize, cores, total_hours)
+
+        # figure out how many indices to expect
+        size = exp.numPermutations() * runs
+
+        # log how many are missing
+        print(path, f'{len(indices)} / {size}')
+
+    return out, approximate_cost
+
 # ----------------
 # Scheduling logic
 # ----------------
-for path in experiment_paths:
-    print(path)
-    # load the experiment json file
-    exp = Experiment.load(path)
-    # load the slurm config file
+slurm = Slurm.fromFile(slurm_path)
+
+# compute how many "tasks" to clump into each job
+groupSize = slurm.cores * slurm.sequential
+
+# compute how much time the jobs are going to take
+hours, minutes, seconds = slurm.time.split(':')
+total_hours = int(hours) + (int(minutes) / 60) + (int(seconds) / 3600)
+
+# gather missing and sum up cost
+missing, cost = gatherMissing(experiment_paths, runs, groupSize, slurm.cores, total_hours)
+
+print(f"Expected to use {cost[0]:.2f} core years, which is {cost[1]:.4f}% of our annual allocation")
+input("Press Enter to confirm or ctrl+c to exit")
+
+for path in missing:
+    # reload this because we do bad mutable things later on
     slurm = Slurm.fromFile(slurm_path)
 
-    # figure out how many indices to use
-    size = exp.numPermutations() * runs
-
-    paths = listResultsPaths(exp, runs)
-    res_path = first(paths)
-
-    data = []
-    raise NotImplementedError("Don't forget to change the expected result file")
-    data_path = f'{res_path}/TODO-CHANGE-ME.csv'
-    if os.path.exists(data_path):
-        f = open(data_path, 'r')
-        data = f.readlines()
-        f.close()
-
-    indices = listIndices(exp, runs)
-    # get all of the indices corresponding to missing results
-    indices = generateMissing(exp, indices, data)
-    indices = printProgress(size, indices)
-
-    # compute how many "tasks" to clump into each job
-    groupSize = slurm.cores * slurm.sequential
-
-    for g in group(indices, groupSize):
+    for g in group(missing[path], groupSize):
         l = list(g)
         print("scheduling:", path, l)
 
         # build the executable string
         runner = f'python {executable} {path} '
         # generate the gnu-parallel command for dispatching to many CPUs across server nodes
-        parallel = Slurm.buildParallel(runner, l, {
-            'ntasks': slurm.cores,
-            'nodes-per-process': 1,
-            'threads-per-process': 1, # <-- if you need multiple threads for a single process, change this number (NOTE: the rest of the scheduling logic does not know how to handle this yet)
+        parallel = Parallel.build({
+            'executable': runner,
+            'cores': slurm.cores,
+            'tasks': l,
         })
 
         # generate the bash script which will be scheduled
