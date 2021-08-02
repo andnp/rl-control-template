@@ -1,11 +1,19 @@
+import numpy as np
 from RlGlue import BaseAgent
+
+# we have two representations
+# the first is *the* representation that the agent controls
+# the other is the "partial observability" representation that is part of the problem spec
+def chainReps(agent_rep, problem_rep):
+    return lambda s: agent_rep.encode(problem_rep.encode(s))
 
 # keeps a one step memory for TD based agents
 class OneStepWrapper(BaseAgent):
-    def __init__(self, agent, gamma, rep):
+    def __init__(self, agent, gamma, obs_rep):
         self.agent = agent
         self.gamma = gamma
-        self.rep = rep
+
+        self.encode = chainReps(agent.rep, obs_rep)
 
         self.s = None
         self.a = None
@@ -13,15 +21,17 @@ class OneStepWrapper(BaseAgent):
 
     def start(self, s):
         self.s = s
-        self.x = self.rep.encode(s)
-        self.a = self.agent.selectAction(self.x)
+        self.x = self.encode(s)
+        self.a = self.agent.policy.selectAction(self.x)
 
         return self.a
 
     def step(self, r, sp):
-        xp = self.rep.encode(sp)
+        xp = self.encode(sp)
 
-        ap = self.agent.update(self.x, self.a, xp, r, self.gamma)
+        self.agent.update(self.x, self.a, xp, r, self.gamma)
+
+        ap = self.agent.policy.selectAction(xp)
 
         self.s = sp
         self.a = ap
@@ -32,6 +42,4 @@ class OneStepWrapper(BaseAgent):
     def end(self, r):
         gamma = 0
 
-        self.agent.update(self.x, self.a, self.x, r, gamma)
-
-        # reset agent here if necessary (e.g. to clear traces)
+        self.agent.update(self.x, self.a, np.zeros_like(self.x), r, gamma)

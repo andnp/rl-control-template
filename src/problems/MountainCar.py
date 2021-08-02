@@ -1,20 +1,35 @@
-from src.problems.BaseProblem import BaseProblem
-from src.environments.MountainCar import MountainCar as MCEnv
-from PyFixedReps.TileCoder import TileCoder
+from PyRlEnvs.domains.MountainCar import MountainCar as Env
+from PyExpUtils.utils.Collector import Collector
+from PyFixedReps.BaseRepresentation import BaseRepresentation
+from experiment.ExperimentModel import ExperimentModel
+from problems.BaseProblem import BaseProblem
+
+def minMax(x, mi, ma):
+    return (x - mi) / (ma - mi)
+
+class MCScaledRep(BaseRepresentation):
+    def encode(self, s, a=None):
+        p, v = s
+
+        sp = minMax(p, -1.2, 0.5)
+        sv = minMax(v, -0.07, 0.07)
+
+        return sp, sv
 
 class MountainCar(BaseProblem):
-    def __init__(self, exp, idx):
-        super().__init__(exp, idx)
-        self.env = MCEnv(self.seed)
+    def __init__(self, exp: ExperimentModel, idx: int, collector: Collector):
+        super().__init__(exp, idx, collector)
+        self.env = Env(self.seed)
         self.actions = 3
 
-        self.rep = TileCoder({
-            'dims': 2,
-            'tiles': 4,
-            'tilings': 16,
-            'input_ranges': [(-1.2, 0.5), (-0.07, 0.07)],
-            'scale_output': True,
-        })
+        self.rep = MCScaledRep()
 
-        self.features = self.rep.features()
-        self.gamma = 1.0
+        # encode the observation ranges for this problem
+        # useful for tile-coding
+        self.rep_params['input_ranges'] = [
+            [-1, 1],
+            [-1, 1],
+        ]
+
+        self.features = 2
+        self.gamma = 0.99

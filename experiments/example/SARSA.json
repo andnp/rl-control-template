@@ -1,9 +1,0 @@
-{
-    "agent": "SARSA",
-    "problem": "MountainCar",
-    "episodes": 100,
-    "metaParameters": {
-        "alpha": [0.9, 0.8, 0.7, 0.6, 0.5],
-        "epsilon": [0.1, 0.05, 0.15]
-    }
-}

@@ -8,8 +8,8 @@ class ExperimentModel(ExperimentDescription):
         self.agent = d['agent']
         self.problem = d['problem']
 
-        self.max_steps = d.get('max_steps', 0)
-        self.episodes = d.get('episodes')
+        self.episode_cutoff = d.get('episode_cutoff', -1)
+        self.total_steps = d.get('total_steps')
 
 def load(path=None):
     path = path if path is not None else sys.argv[1]

@@ -1,8 +1,14 @@
-git+https://github.com/andnp/RlGlue@0.2#egg=RlGlue
-git+https://github.com/andnp/PyExpUtils@2.3#egg=PyExpUtils
-git+https://github.com/andnp/PyFixedReps@0.4#egg=PyFixedReps
+git+https://github.com/andnp/RlGlue@0.4#egg=RlGlue
+git+https://github.com/andnp/PyExpUtils@2.19#egg=PyExpUtils
+git+https://github.com/andnp/PyExpPlotting@0.7#egg=PyExpPlotting
+git+https://github.com/andnp/PyFixedReps@0.5#egg=PyFixedReps
+git+https://github.com/andnp/PyRlEnvs@0.22#egg=PyRlEnvs
 
 matplotlib>=2.2.3
-pylint>=2.0.0
-mypy>=0.770
-git+https://github.com/numpy/numpy-stubs
+flake8>=3.9.0
+gym>=0.17.2
+box2d-py>=2.3.2
+numba>=0.52.0
+jax>=0.2.14
+dm-haiku>=0.0.4
+optax>=0.0.8
