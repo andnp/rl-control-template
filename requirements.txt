@@ -1,8 +1,9 @@
-git+https://github.com/andnp/RlGlue@0.4#egg=RlGlue
-git+https://github.com/andnp/PyExpUtils@2.19#egg=PyExpUtils
-git+https://github.com/andnp/PyExpPlotting@0.7#egg=PyExpPlotting
-git+https://github.com/andnp/PyFixedReps@0.5#egg=PyFixedReps
-git+https://github.com/andnp/PyRlEnvs@0.22#egg=PyRlEnvs
+git+ssh://git@github.com/andnp/RlGlue@0.4
+git+ssh://git@github.com/andnp/PyExpUtils@2.19
+git+ssh://git@github.com/andnp/PyExpPlotting@0.8
+git+ssh://git@github.com/andnp/PyFixedReps@0.5
+git+ssh://git@github.com/andnp/PyRlEnvs@0.23
+git+ssh://git@github.com/andnp/ReplayTables@0.0.0
 
 matplotlib>=2.2.3
 flake8>=3.9.0

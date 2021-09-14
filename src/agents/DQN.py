@@ -4,12 +4,12 @@ import numpy as np
 import copy
 
 from PyExpUtils.utils.Collector import Collector
+from ReplayTables.Table import Table
 from agents.BaseAgent import BaseAgent
-from utils.ReplayBuffer import ReplayBuffer
 from representations.networks import getNetwork
 from utils.policies import createEGreedy
 
-from utils.jax import huber_loss, Batch, getBatchColumns
+from utils.jax import huber_loss, Batch
 
 import jax
 import optax
@@ -48,7 +48,18 @@ class DQN(BaseAgent):
         # set up the experience replay buffer
         self.buffer_size = params['buffer_size']
         self.batch_size = params['batch']
-        self.buffer = ReplayBuffer(self.buffer_size, seed)
+
+        # an empty tuple is treated as a null dimension. So these end up as
+        # a vector of length buffer_size, instead of a (buffer_size x 1) matrix
+        self.buffer = Table(max_size=self.buffer_size, seed=seed, columns=[
+            { 'name': 'Obs', 'shape': features },
+            { 'name': 'Action', 'shape': 1, 'dtype': 'int_' },
+            { 'name': 'NextObs', 'shape': features },
+            { 'name': 'Reward', 'shape': 1 },
+            { 'name': 'Discount', 'shape': 1 },
+        ])
+
+        # self.buffer = ReplayBuffer(self.buffer_size, seed)
 
         # build the policy
         self.policy = createEGreedy(self.values, self.actions, self.epsilon, self.rng)
@@ -104,13 +115,10 @@ class DQN(BaseAgent):
             sp = np.zeros_like(s)
 
         # always add to the buffer
-        self.buffer.add((s, a, sp, r, gamma))
+        self.buffer.addTuple((s, a, sp, r, gamma))
 
         # skip updates if the buffer isn't full yet
-        if len(self.buffer) > self.batch_size + 1:
-            samples, idcs = self.buffer.sample(self.batch_size)
-            batch = getBatchColumns(samples)
-
-            tde = self.updateNetwork(batch)
-
-            self.buffer.update_priorities(idcs, tde)
+        if len(self.buffer) > self.batch_size:
+            samples = self.buffer.sample(self.batch_size)
+            batch = Batch(*samples)
+            self.updateNetwork(batch)
