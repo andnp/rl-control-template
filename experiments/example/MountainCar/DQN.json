@@ -11,7 +11,7 @@
 
         "optimizer": {
             "name": "ADAM",
-            "alpha": 0.001,
+            "alpha": 0.000244140625,
             "beta1": 0.9,
             "beta2": 0.999
         },
