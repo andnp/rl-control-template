@@ -19,7 +19,7 @@ class MCScaledRep(BaseRepresentation):
 class MountainCar(BaseProblem):
     def __init__(self, exp: ExperimentModel, idx: int, collector: Collector):
         super().__init__(exp, idx, collector)
-        self.env = Env(self.seed)
+        self.env = Env(randomize=False, seed=self.seed)
         self.actions = 3
 
         self.rep = MCScaledRep()
@@ -31,5 +31,5 @@ class MountainCar(BaseProblem):
             [-1, 1],
         ]
 
-        self.features = 2
+        self.observations = 2
         self.gamma = 0.99

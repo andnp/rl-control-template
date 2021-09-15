@@ -1,8 +1,12 @@
+from typing import Optional
 from PyExpUtils.utils.Collector import Collector
+from PyFixedReps.BaseRepresentation import BaseRepresentation
+from RlGlue.environment import BaseEnvironment
+
 from experiment.ExperimentModel import ExperimentModel
+from agents.BaseAgent import BaseAgent
 from agents.registry import getAgent
 
-from PyFixedReps.BaseRepresentation import BaseRepresentation
 
 class IdentityRep(BaseRepresentation):
     def encode(self, s, a=None):
@@ -21,17 +25,20 @@ class BaseProblem:
         self.exp_params = self.params.get('experiment', {})
         self.rep_params = self.params.get('representation', {})
 
-        self.agent = None
-        self.env = None
-        self.gamma = None
+        self.agent: Optional[BaseAgent] = None
+        self.env: Optional[BaseEnvironment] = None
+        self.gamma: Optional[float] = None
         self.rep = IdentityRep()
 
         self.seed = exp.getRun(idx)
 
-        self.features = 0
+        self.observations = 0
         self.actions = 0
 
     def getEnvironment(self):
+        if self.env is None:
+            raise Exception('Expected the environment object to be constructed already')
+
         return self.env
 
     def getRepresentation(self):
@@ -39,5 +46,5 @@ class BaseProblem:
 
     def getAgent(self):
         Agent = getAgent(self.exp.agent)
-        self.agent = Agent(self.features, self.actions, self.params, self.collector, self.seed)
+        self.agent = Agent(self.observations, self.actions, self.params, self.collector, self.seed)
         return self.agent

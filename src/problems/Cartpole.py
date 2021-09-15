@@ -7,7 +7,7 @@ from problems.BaseProblem import BaseProblem
 class Cartpole(BaseProblem):
     def __init__(self, exp: ExperimentModel, idx: int, collector: Collector):
         super().__init__(exp, idx, collector)
-        self.env = Env(randomize=True, seed=self.seed)
+        self.env = Env(randomize=False, seed=self.seed)
         self.actions = 2
 
         x_thresh = 4.8
@@ -22,5 +22,5 @@ class Cartpole(BaseProblem):
             [-2.0, 2.0],
         ]
 
-        self.features = 4
+        self.observations = 4
         self.gamma = 0.999

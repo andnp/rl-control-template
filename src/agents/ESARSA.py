@@ -25,8 +25,8 @@ def value(w, x):
     return w.T[x].sum(axis=0)
 
 class ESARSA(BaseAgent):
-    def __init__(self, features: int, actions: int, params: Dict, collector: Collector, seed: int):
-        super().__init__(features, actions, params, collector, seed)
+    def __init__(self, observations: int, actions: int, params: Dict, collector: Collector, seed: int):
+        super().__init__(observations, actions, params, collector, seed)
 
         # define parameter contract
         self.alpha = params['alpha']
@@ -35,7 +35,7 @@ class ESARSA(BaseAgent):
         # build representation
         self.rep_params: Dict = params['representation']
         self.rep = SparseTileCoder({
-            'dims': features,
+            'dims': observations,
             'tiles': self.rep_params['tiles'],
             'tilings': self.rep_params['tilings'],
             'input_ranges': self.rep_params['input_ranges'],

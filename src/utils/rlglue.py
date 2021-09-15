@@ -17,7 +17,7 @@ class OneStepWrapper(BaseAgent):
 
         self.s = None
         self.a = None
-        self.x = None
+        self.x = np.zeros(0)
 
     def start(self, s):
         self.s = s

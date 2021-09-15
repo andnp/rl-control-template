@@ -24,8 +24,8 @@ def q_loss(q, a, r, gamma, qp):
     return huber_loss(1.0, q[a], target)
 
 class DQN(BaseAgent):
-    def __init__(self, features: int, actions: int, params: Dict, collector: Collector, seed: int):
-        super().__init__(features, actions, params, collector, seed)
+    def __init__(self, observations: int, actions: int, params: Dict, collector: Collector, seed: int):
+        super().__init__(observations, actions, params, collector, seed)
         self.rep_params: Dict = params['representation']
         self.optimizer_params: Dict = params['optimizer']
 
@@ -33,7 +33,7 @@ class DQN(BaseAgent):
 
         # set up initialization of the value function network
         # and target network
-        self.value_net, self.net_params = getNetwork(features, actions, self.rep_params, seed)
+        self.value_net, self.net_params = getNetwork(observations, actions, self.rep_params, seed)
         self.target_params = copy.deepcopy(self.net_params)
         self.target_refresh = params.get('target_refresh', 1)
 
@@ -52,14 +52,12 @@ class DQN(BaseAgent):
         # an empty tuple is treated as a null dimension. So these end up as
         # a vector of length buffer_size, instead of a (buffer_size x 1) matrix
         self.buffer = Table(max_size=self.buffer_size, seed=seed, columns=[
-            { 'name': 'Obs', 'shape': features },
+            { 'name': 'Obs', 'shape': observations },
             { 'name': 'Action', 'shape': 1, 'dtype': 'int_' },
-            { 'name': 'NextObs', 'shape': features },
+            { 'name': 'NextObs', 'shape': observations },
             { 'name': 'Reward', 'shape': 1 },
             { 'name': 'Discount', 'shape': 1 },
         ])
-
-        # self.buffer = ReplayBuffer(self.buffer_size, seed)
 
         # build the policy
         self.policy = createEGreedy(self.values, self.actions, self.epsilon, self.rng)

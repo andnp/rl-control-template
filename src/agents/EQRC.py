@@ -3,12 +3,12 @@ from typing import Any, Dict
 import numpy as np
 
 from PyExpUtils.utils.Collector import Collector
+from ReplayTables.Table import Table
 from agents.BaseAgent import BaseAgent
-from utils.ReplayBuffer import ReplayBuffer
 from utils.policies import createEGreedy
 from representations.networks import getNetwork
 
-from utils.jax import Batch, getBatchColumns
+from utils.jax import Batch
 
 import jax
 import optax
@@ -45,8 +45,8 @@ def qc_loss(epsilon, q, a, r, gamma, qtp1, h):
     return v_loss, h_loss
 
 class EQRC(BaseAgent):
-    def __init__(self, features: int, actions: int, params: Dict, collector: Collector, seed: int):
-        super().__init__(features, actions, params, collector, seed)
+    def __init__(self, observations: int, actions: int, params: Dict, collector: Collector, seed: int):
+        super().__init__(observations, actions, params, collector, seed)
         self.rep_params: Dict = params['representation']
         self.optimizer_params: Dict = params['optimizer']
 
@@ -55,11 +55,11 @@ class EQRC(BaseAgent):
 
         # set up initialization of the value function network
         # and target network
-        self.value_net, net_params = getNetwork(features, actions, self.rep_params, seed)
+        self.value_net, net_params = getNetwork(observations, actions, self.rep_params, seed)
 
         # to build the secondary weights, we need to know the size of the "feature layer" of our nn
         # there is almost certainly a better way than this, but it's fine
-        _, x = self.value_net.apply(net_params, jnp.zeros(features))
+        _, x = self.value_net.apply(net_params, jnp.zeros(observations))
 
         h = partial(buildH, actions)
         self.h = hk.without_apply_rng(hk.transform(h))
@@ -81,12 +81,19 @@ class EQRC(BaseAgent):
         # set up the experience replay buffer
         self.buffer_size = params['buffer_size']
         self.batch_size = params['batch']
-        self.buffer = ReplayBuffer(self.buffer_size, seed)
+
+        # an empty tuple is treated as a null dimension. So these end up as
+        # a vector of length buffer_size, instead of a (buffer_size x 1) matrix
+        self.buffer = Table(max_size=self.buffer_size, seed=seed, columns=[
+            { 'name': 'Obs', 'shape': observations },
+            { 'name': 'Action', 'shape': 1, 'dtype': 'int_' },
+            { 'name': 'NextObs', 'shape': observations },
+            { 'name': 'Reward', 'shape': 1 },
+            { 'name': 'Discount', 'shape': 1 },
+        ])
 
         # build the policy
         self.policy = createEGreedy(self.values, self.actions, self.epsilon, self.rng)
-
-        self.steps = 0
 
     # jit'ed internal value function approximator
     # considerable speedup, especially for larger networks (note: haiku networks are not jit'ed by default)
@@ -136,8 +143,6 @@ class EQRC(BaseAgent):
     # then assign those parameters to the stateful OOP API
     # to maintain similarity to other non-jax algorithm code
     def _updateNetwork(self, batch: Batch):
-        self.steps += 1
-
         # note that we need to pass in net_params, target_params, and opt_state as arguments here
         # we only have access to a cached version of "self" within these functions due to jax.jit
         # so we need to manually maintain the stateful portion ourselves
@@ -150,8 +155,6 @@ class EQRC(BaseAgent):
 
     # Public facing update function
     def update(self, s, a, sp, r, gamma):
-        self.steps += 1
-
         # If gamma is zero, then we are at a terminal state
         # it doesn't really matter what sp is represented as, since we will multiply it by gamma=0 later anyways
         # however, setting sp = nan (which is more semantically correct) causes some issues with autograd
@@ -159,13 +162,10 @@ class EQRC(BaseAgent):
             sp = np.zeros_like(s)
 
         # always add to the buffer
-        self.buffer.add((s, a, sp, r, gamma))
+        self.buffer.addTuple((s, a, sp, r, gamma))
 
         # also skip updates if the buffer isn't full yet
-        if len(self.buffer) > self.batch_size + 1:
-            samples, idcs = self.buffer.sample(self.batch_size)
-            batch = getBatchColumns(samples)
-
-            tde = self._updateNetwork(batch)
-
-            self.buffer.update_priorities(idcs, tde)
+        if len(self.buffer) > self.batch_size:
+            samples = self.buffer.sample(self.batch_size)
+            batch = Batch(*samples)
+            self._updateNetwork(batch)

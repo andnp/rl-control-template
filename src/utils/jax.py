@@ -1,4 +1,4 @@
-from typing import List, NamedTuple
+from typing import NamedTuple
 import numpy as np
 
 import jax.numpy as jnp
@@ -10,17 +10,6 @@ Batch = NamedTuple('Batch', [
     ('r', np.ndarray),
     ('gamma', np.ndarray),
 ])
-
-def getBatchColumns(samples: List):
-    cols = list(zip(*samples))
-
-    x = jnp.array(cols[0])
-    a = jnp.array(cols[1])
-    xp = jnp.array(cols[2])
-    r = jnp.array(cols[3])
-    gamma = jnp.array(cols[4])
-
-    return Batch(x, a, xp, r, gamma)
 
 def mse_loss(pred: np.ndarray, target: np.ndarray):
     return 0.5 * jnp.mean(jnp.square(pred - target))

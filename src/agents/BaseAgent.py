@@ -9,8 +9,8 @@ class IdentityRep(BaseRepresentation):
         return s
 
 class BaseAgent:
-    def __init__(self, features: int, actions: int, params: Dict, collector: Collector, seed: int):
-        self.features = features
+    def __init__(self, observations: int, actions: int, params: Dict, collector: Collector, seed: int):
+        self.observations = observations
         self.actions = actions
         self.params = params
         self.collector = collector
