@@ -107,7 +107,7 @@ class EQRC(BaseAgent):
         return self._values(self.params['w'], x)
 
     # compute the total QRC loss for both sets of parameters (value parameters and h parameters)
-    def _loss(self, params, batch):
+    def _loss(self, params, batch: Batch):
         # forward pass of value function network
         q, phi = self.value_net.apply(params['w'], batch.x)
         qtp1, _ = self.value_net.apply(params['w'], batch.xp)

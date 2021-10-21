@@ -1,4 +1,4 @@
-from PyRlEnvs.domains.MountainCar import MountainCar as Env
+from PyRlEnvs.domains.MountainCar import GymMountainCar as Env
 from PyExpUtils.utils.Collector import Collector
 from PyFixedReps.BaseRepresentation import BaseRepresentation
 from experiment.ExperimentModel import ExperimentModel
@@ -19,7 +19,7 @@ class MCScaledRep(BaseRepresentation):
 class MountainCar(BaseProblem):
     def __init__(self, exp: ExperimentModel, idx: int, collector: Collector):
         super().__init__(exp, idx, collector)
-        self.env = Env(randomize=False, seed=self.seed)
+        self.env = Env(seed=self.seed)
         self.actions = 3
 
         self.rep = MCScaledRep()

@@ -2,7 +2,7 @@ git+ssh://git@github.com/andnp/RlGlue@0.4
 git+ssh://git@github.com/andnp/PyExpUtils@2.19
 git+ssh://git@github.com/andnp/PyExpPlotting@0.8
 git+ssh://git@github.com/andnp/PyFixedReps@0.5
-git+ssh://git@github.com/andnp/PyRlEnvs@0.23
+git+ssh://git@github.com/andnp/PyRlEnvs@0.25
 git+ssh://git@github.com/andnp/ReplayTables@0.0.1
 
 matplotlib>=2.2.3
@@ -13,4 +13,4 @@ numba>=0.52.0
 jax>=0.2.14
 dm-haiku>=0.0.4
 optax>=0.0.8
-numpy>=1.17<=1.21
+numpy<1.21>=1.17
