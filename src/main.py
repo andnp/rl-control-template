@@ -66,6 +66,10 @@ for idx in indices:
     episode = 0
     for step in range(exp.total_steps):
         _, _, _, t = glue.step()
+        # compute the average time-per-step in ms
+        avg_time = 1000 * (time.time() - start_time) / step
+        fps = step / (time.time() - start_time)
+        logging.debug(f' {episode} {step} {glue.total_reward} {avg_time:.4}ms {int(fps)}')
 
         if t or (exp.episode_cutoff > -1 and glue.num_steps >= exp.episode_cutoff):
             # track how many episodes are completed (cutoff is counted as termination for this count)
