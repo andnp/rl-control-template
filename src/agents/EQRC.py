@@ -169,6 +169,10 @@ class EQRC(BaseAgent):
         if self.steps % self.update_freq != 0:
             return
 
+        # only update every `update_freq` steps
+        if self.steps % self.update_freq != 0:
+            return
+
         # also skip updates if the buffer isn't full yet
         if len(self.buffer) <= self.batch_size:
             return

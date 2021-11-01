@@ -69,6 +69,7 @@ class DQN(BaseAgent):
         # set up the experience replay buffer
         self.buffer_size = params['buffer_size']
         self.batch_size = params['batch']
+        self.update_freq = params.get('update_freq', 1)
 
         if params.get('use_per', False):
             print('using per')
@@ -159,6 +160,10 @@ class DQN(BaseAgent):
             r=r,
             gamma=gamma,
         ))
+
+        # only update every `update_freq` steps
+        if self.steps % self.update_freq != 0:
+            return
 
         # only update every `update_freq` steps
         if self.steps % self.update_freq != 0:
