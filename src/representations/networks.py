@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 import haiku as hk
 
+from utils.fp import pipe
+
 def nn(layers: List[int], actions: int, x: np.ndarray):
     init = hk.initializers.VarianceScaling(np.sqrt(2), 'fan_avg', 'uniform')
     b_init = hk.initializers.Constant(0)
@@ -39,10 +41,27 @@ def getNetwork(inputs: int, outputs: int, params: Dict[str, Any], seed: int):
 
         network = partial(nn, layers, outputs)
 
+    elif name == 'MinatarNet':
+        def conv(x):
+            hidden = hk.Sequential([
+                hk.Conv2D(16, 3, 2),
+                jax.nn.relu,
+                hk.Flatten(),
+            ])
+
+            return hidden(x)
+
+        hidden = params['hidden']
+        layers = [hidden]
+        network = pipe([
+            conv,
+            partial(nn, layers, outputs)
+        ])
+
     else:
         raise NotImplementedError()
 
     network = hk.without_apply_rng(hk.transform(network))
-    net_params = network.init(jax.random.PRNGKey(seed), jnp.zeros(inputs))
+    net_params = network.init(jax.random.PRNGKey(seed), jnp.zeros((1,) + tuple(inputs)))
 
     return network, net_params

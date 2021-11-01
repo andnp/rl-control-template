@@ -48,6 +48,7 @@ class DQN(BaseAgent):
         # set up the experience replay buffer
         self.buffer_size = params['buffer_size']
         self.batch_size = params['batch']
+        self.update_freq = params.get('update_freq', 1)
 
         # an empty tuple is treated as a null dimension. So these end up as
         # a vector of length buffer_size, instead of a (buffer_size x 1) matrix
@@ -71,8 +72,8 @@ class DQN(BaseAgent):
 
     # get value function Q(s, \cdot)
     def values(self, x: np.ndarray):
-        x = np.asarray(x)
-        return self._values(self.net_params, x)
+        x = np.asarray(x).reshape((1,) + x.shape)
+        return self._values(self.net_params, x)[0]
 
     def _loss(self, params: hk.Params, target: hk.Params, batch: Batch):
         qs, _ = self.value_net.apply(params, batch.x)
@@ -114,6 +115,10 @@ class DQN(BaseAgent):
 
         # always add to the buffer
         self.buffer.addTuple((s, a, sp, r, gamma))
+
+        # only update every `update_freq` steps
+        if self.steps % self.update_freq != 0:
+            return
 
         # skip updates if the buffer isn't full yet
         if len(self.buffer) > self.batch_size:

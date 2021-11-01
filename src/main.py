@@ -79,7 +79,8 @@ for step in range(exp.total_steps):
 
         # compute the average time-per-step in ms
         avg_time = 1000 * (time.time() - start_time) / step
-        logging.debug(f' {episode} {step} {glue.total_reward} {avg_time:.4}ms')
+        fps = step / (time.time() - start_time)
+        logging.debug(f' {episode} {step} {glue.total_reward} {avg_time:.4}ms {int(fps)}')
 
         glue.start()
 

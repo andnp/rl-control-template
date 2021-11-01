@@ -1,5 +1,6 @@
 from problems.MountainCar import MountainCar
 from problems.Cartpole import Cartpole
+from problems.Breakout import Breakout
 
 def getProblem(name):
     if name == 'MountainCar':
@@ -7,5 +8,8 @@ def getProblem(name):
 
     if name == 'Cartpole':
         return Cartpole
+
+    if name == 'Breakout':
+        return Breakout
 
     raise NotImplementedError()

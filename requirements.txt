@@ -5,6 +5,9 @@ git+ssh://git@github.com/andnp/PyFixedReps@0.5
 git+ssh://git@github.com/andnp/PyRlEnvs@0.25
 git+ssh://git@github.com/andnp/ReplayTables@0.0.1
 
+# custom minatar with jit compiled environments
+git+ssh://git@github.com/andnp/MinAtar
+
 matplotlib>=2.2.3
 flake8>=3.9.0
 gym>=0.17.2

@@ -59,11 +59,11 @@ class EQRC(BaseAgent):
 
         # to build the secondary weights, we need to know the size of the "feature layer" of our nn
         # there is almost certainly a better way than this, but it's fine
-        _, x = self.value_net.apply(net_params, jnp.zeros(observations))
+        _, x = self.value_net.apply(net_params, jnp.zeros((1,) + tuple(observations)))
 
         h = partial(buildH, actions)
         self.h = hk.without_apply_rng(hk.transform(h))
-        h_params = self.h.init(jax.random.PRNGKey(seed), jnp.zeros(x.shape[0]))
+        h_params = self.h.init(jax.random.PRNGKey(seed), x)
 
         self.params = {
             'w': net_params,
@@ -81,6 +81,8 @@ class EQRC(BaseAgent):
         # set up the experience replay buffer
         self.buffer_size = params['buffer_size']
         self.batch_size = params['batch']
+        self.update_freq = params.get('update_freq', 1)
+        self.steps = 0
 
         # an empty tuple is treated as a null dimension. So these end up as
         # a vector of length buffer_size, instead of a (buffer_size x 1) matrix
@@ -103,8 +105,8 @@ class EQRC(BaseAgent):
 
     # public facing value function approximation
     def values(self, x: np.ndarray):
-        x = np.asarray(x)
-        return self._values(self.params['w'], x)
+        x = np.asarray(x).reshape((1,) + x.shape)
+        return self._values(self.params['w'], x)[0]
 
     # compute the total QRC loss for both sets of parameters (value parameters and h parameters)
     def _loss(self, params, batch: Batch):
@@ -155,6 +157,7 @@ class EQRC(BaseAgent):
 
     # Public facing update function
     def update(self, s, a, sp, r, gamma):
+        self.steps += 1
         # If gamma is zero, then we are at a terminal state
         # it doesn't really matter what sp is represented as, since we will multiply it by gamma=0 later anyways
         # however, setting sp = nan (which is more semantically correct) causes some issues with autograd
@@ -163,6 +166,10 @@ class EQRC(BaseAgent):
 
         # always add to the buffer
         self.buffer.addTuple((s, a, sp, r, gamma))
+
+        # only update every `update_freq` steps
+        if self.steps % self.update_freq != 0:
+            return
 
         # also skip updates if the buffer isn't full yet
         if len(self.buffer) > self.batch_size:

@@ -31,5 +31,5 @@ class MountainCar(BaseProblem):
             [-1, 1],
         ]
 
-        self.observations = 2
+        self.observations = (2,)
         self.gamma = 0.99

@@ -22,5 +22,5 @@ class Cartpole(BaseProblem):
             [-2.0, 2.0],
         ]
 
-        self.observations = 4
+        self.observations = (4,)
         self.gamma = 0.999
