@@ -1,6 +1,6 @@
 from functools import partial
 import numpy as np
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import jax
 import jax.numpy as jnp
@@ -26,7 +26,7 @@ def nn(layers: List[int], actions: int, x: np.ndarray):
     h = hidden(x)
     return values(h), h
 
-def getNetwork(inputs: int, outputs: int, params: Dict[str, Any], seed: int):
+def getNetwork(inputs: Tuple, outputs: int, params: Dict[str, Any], seed: int):
     name = params['type']
 
     if name == 'TwoLayerRelu':

@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 import numpy as np
 
 from PyExpUtils.utils.Collector import Collector
@@ -15,37 +15,8 @@ import optax
 import jax.numpy as jnp
 import haiku as hk
 
-def buildH(actions: int, x: np.ndarray):
-    h = hk.Sequential([
-        hk.Linear(actions, w_init=hk.initializers.Constant(0), b_init=hk.initializers.Constant(0))
-    ])
-
-    return h(jax.lax.stop_gradient(x))
-
-def _argmax_with_random_tie_breaking(preferences):
-    optimal_actions = (preferences == preferences.max(axis=-1, keepdims=True))
-    return optimal_actions / optimal_actions.sum(axis=-1, keepdims=True)
-
-def qc_loss(epsilon, q, a, r, gamma, qtp1, h):
-    pi = _argmax_with_random_tie_breaking(qtp1)
-
-    pi = (1.0 - epsilon) * pi + (epsilon / qtp1.shape[0])
-    pi = jax.lax.stop_gradient(pi)
-
-    vtp1 = qtp1.dot(pi)
-    target = r + gamma * vtp1
-    target = jax.lax.stop_gradient(target)
-
-    delta = target - q[a]
-    delta_hat = h[a]
-
-    v_loss = 0.5 * delta**2 + gamma * jax.lax.stop_gradient(delta_hat) * vtp1
-    h_loss = 0.5 * (jax.lax.stop_gradient(delta) - delta_hat)**2
-
-    return v_loss, h_loss
-
 class EQRC(BaseAgent):
-    def __init__(self, observations: int, actions: int, params: Dict, collector: Collector, seed: int):
+    def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
         super().__init__(observations, actions, params, collector, seed)
         self.rep_params: Dict = params['representation']
         self.optimizer_params: Dict = params['optimizer']
@@ -84,8 +55,6 @@ class EQRC(BaseAgent):
         self.update_freq = params.get('update_freq', 1)
         self.steps = 0
 
-        # an empty tuple is treated as a null dimension. So these end up as
-        # a vector of length buffer_size, instead of a (buffer_size x 1) matrix
         self.buffer = Table(max_size=self.buffer_size, seed=seed, columns=[
             { 'name': 'Obs', 'shape': observations },
             { 'name': 'Action', 'shape': 1, 'dtype': 'int_' },
@@ -176,3 +145,32 @@ class EQRC(BaseAgent):
             samples = self.buffer.sample(self.batch_size)
             batch = Batch(*samples)
             self._updateNetwork(batch)
+
+def buildH(actions: int, x: np.ndarray):
+    h = hk.Sequential([
+        hk.Linear(actions, w_init=hk.initializers.Constant(0), b_init=hk.initializers.Constant(0))
+    ])
+
+    return h(jax.lax.stop_gradient(x))
+
+def _argmax_with_random_tie_breaking(preferences):
+    optimal_actions = (preferences == preferences.max(axis=-1, keepdims=True))
+    return optimal_actions / optimal_actions.sum(axis=-1, keepdims=True)
+
+def qc_loss(epsilon, q, a, r, gamma, qtp1, h):
+    pi = _argmax_with_random_tie_breaking(qtp1)
+
+    pi = (1.0 - epsilon) * pi + (epsilon / qtp1.shape[0])
+    pi = jax.lax.stop_gradient(pi)
+
+    vtp1 = qtp1.dot(pi)
+    target = r + gamma * vtp1
+    target = jax.lax.stop_gradient(target)
+
+    delta = target - q[a]
+    delta_hat = h[a]
+
+    v_loss = 0.5 * delta**2 + gamma * jax.lax.stop_gradient(delta_hat) * vtp1
+    h_loss = 0.5 * (jax.lax.stop_gradient(delta) - delta_hat)**2
+
+    return v_loss, h_loss

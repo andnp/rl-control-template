@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import numpy as np
-from typing import Dict
+from typing import Dict, Tuple
 from PyExpUtils.utils.Collector import Collector
 from PyFixedReps.BaseRepresentation import BaseRepresentation
 
@@ -9,7 +9,7 @@ class IdentityRep(BaseRepresentation):
         return s
 
 class BaseAgent:
-    def __init__(self, observations: int, actions: int, params: Dict, collector: Collector, seed: int):
+    def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
         self.observations = observations
         self.actions = actions
         self.params = params

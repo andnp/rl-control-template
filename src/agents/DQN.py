@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 import numpy as np
 import copy
 
@@ -24,7 +24,7 @@ def q_loss(q, a, r, gamma, qp):
     return huber_loss(1.0, q[a], target)
 
 class DQN(BaseAgent):
-    def __init__(self, observations: int, actions: int, params: Dict, collector: Collector, seed: int):
+    def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
         super().__init__(observations, actions, params, collector, seed)
         self.rep_params: Dict = params['representation']
         self.optimizer_params: Dict = params['optimizer']

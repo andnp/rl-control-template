@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict
+from typing import Dict, Tuple
 from numba import njit
 from PyExpUtils.utils.Collector import Collector
 
@@ -25,7 +25,7 @@ def value(w, x):
     return w.T[x].sum(axis=0)
 
 class ESARSA(BaseAgent):
-    def __init__(self, observations: int, actions: int, params: Dict, collector: Collector, seed: int):
+    def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
         super().__init__(observations, actions, params, collector, seed)
 
         # define parameter contract
@@ -35,7 +35,7 @@ class ESARSA(BaseAgent):
         # build representation
         self.rep_params: Dict = params['representation']
         self.rep = SparseTileCoder({
-            'dims': observations,
+            'dims': observations[0],
             'tiles': self.rep_params['tiles'],
             'tilings': self.rep_params['tilings'],
             'input_ranges': self.rep_params['input_ranges'],

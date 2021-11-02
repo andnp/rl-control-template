@@ -8,7 +8,7 @@
         "target_refresh": 32,
         "buffer_size": 10000,
         "batch": 32,
-        "update_freq": 4,
+        "update_freq": 2,
 
         "optimizer": {
             "name": "ADAM",
