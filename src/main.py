@@ -20,11 +20,12 @@ import jax
 jax.config.update('jax_platform_name', 'cpu')
 
 logging.getLogger('absl').setLevel(logging.ERROR)
+logging.getLogger('filelock').setLevel(logging.ERROR)
+logging.getLogger('numba').setLevel(logging.WARNING)
 prod = len(sys.argv) == 4 or 'cdr' in socket.gethostname()
 # prod = True
 if not prod:
     logging.basicConfig(level=logging.DEBUG)
-    logging.getLogger('numba').setLevel(logging.WARNING)
 
 # ------------------
 # -- Command Args --
@@ -32,7 +33,7 @@ if not prod:
 
 if len(sys.argv) < 3:
     print('run again with:')
-    print('python3 src/main.py <path/to/description.json> <idx>')
+    print('python3 src/main.py <path/to/description.json> <indices ...>')
     exit(1)
 
 # ----------------------
@@ -40,61 +41,60 @@ if len(sys.argv) < 3:
 # ----------------------
 
 exp = ExperimentModel.load(sys.argv[1])
-idx = int(sys.argv[2])
-
-run = exp.getRun(idx)
-
-collector = Collector()
-# set random seeds accordingly
-np.random.seed(run)
+indices = list(map(int, sys.argv[2:]))
 
 Problem = getProblem(exp.problem)
-problem = Problem(exp, idx, collector)
+collector = Collector()
+for idx in indices:
+    collector.setIdx(idx)
+    run = exp.getRun(idx)
 
-agent = problem.getAgent()
-env = problem.getEnvironment()
+    # set random seeds accordingly
+    np.random.seed(run)
 
-wrapper = OneStepWrapper(agent, problem.gamma, problem.rep)
+    problem = Problem(exp, idx, collector)
+    agent = problem.getAgent()
+    env = problem.getEnvironment()
 
-glue = RlGlue(wrapper, env)
+    wrapper = OneStepWrapper(agent, problem.gamma, problem.rep)
+    glue = RlGlue(wrapper, env)
 
-# Run the experiment
-glue.start()
-start_time = time.time()
+    # Run the experiment
+    glue.start()
+    start_time = time.time()
 
-episode = 0
-for step in range(exp.total_steps):
-    _, _, _, t = glue.step()
+    episode = 0
+    for step in range(exp.total_steps):
+        _, _, _, t = glue.step()
 
-    if t or (exp.episode_cutoff > -1 and glue.num_steps >= exp.episode_cutoff):
-        # track how many episodes are completed (cutoff is counted as termination for this count)
-        episode += 1
+        if t or (exp.episode_cutoff > -1 and glue.num_steps >= exp.episode_cutoff):
+            # track how many episodes are completed (cutoff is counted as termination for this count)
+            episode += 1
 
-        # allow agent to cleanup traces or other stateful episodic info
-        agent.cleanup()
+            # allow agent to cleanup traces or other stateful episodic info
+            agent.cleanup()
 
-        # collect some data
+            # collect some data
+            collector.concat('step_return', [glue.total_reward] * glue.num_steps)
+            collector.collect('episodic_return', glue.total_reward)
+
+            # compute the average time-per-step in ms
+            avg_time = 1000 * (time.time() - start_time) / step
+            logging.debug(f' {episode} {step} {glue.total_reward} {avg_time:.4}ms')
+
+            glue.start()
+
+    # try to detect if a run never finished
+    # if we have no data in the 'step_return' key, then the termination condition was never hit
+    if len(collector.get('step_return', idx)) == 0:
+        # collect an array of rewards that is the length of the number of steps in episode
+        # effectively we count the whole episode as having received the same final reward
         collector.concat('step_return', [glue.total_reward] * glue.num_steps)
+        # also track the reward per episode (this may not have the same length for all agents!)
         collector.collect('episodic_return', glue.total_reward)
 
-        # compute the average time-per-step in ms
-        avg_time = 1000 * (time.time() - start_time) / step
-        fps = step / (time.time() - start_time)
-        logging.debug(f' {episode} {step} {glue.total_reward} {avg_time:.4}ms {int(fps)}')
-
-        glue.start()
-
-# try to detect if a run never finished
-# if we have no data in the 'step_return' key, then the termination condition was never hit
-if collector.run_data.get('step_return') is None:
-    # collect an array of rewards that is the length of the number of steps in episode
-    # effectively we count the whole episode as having received the same final reward
-    collector.concat('step_return', [glue.total_reward] * glue.num_steps)
-    # also track the reward per episode (this may not have the same length for all agents!)
-    collector.collect('episodic_return', glue.total_reward)
-
-# force the data to always have same length
-collector.fillRest('step_return', exp.total_steps)
+    # force the data to always have same length
+    collector.fillRest('step_return', exp.total_steps)
 
 # -------------------------
 # -- [Optional] Plotting --
@@ -115,12 +115,9 @@ collector.fillRest('step_return', exp.total_steps)
 # -- Saving --
 # ------------
 
-from PyExpUtils.results.backends.h5 import saveResults
-from PyExpUtils.utils.arrays import downsample
+from PyExpUtils.results.backends.pandas import saveCollector
 
-for key in collector.run_data:
-    data = collector.run_data[key]
-
+for key in collector.keys():
     # heavily downsample the data to reduce storage costs
     # we don't need all of the data-points for plotting anyways
     # method='window' returns a window average
@@ -130,6 +127,6 @@ for key in collector.run_data:
 
     # don't downsample episode returns
     if 'episodic' not in key:
-        data = downsample(data, num=500, method='window')
+        collector.downsample(key, num=500, method='window')
 
-    saveResults(exp, idx, key, data)
+saveCollector(exp, collector)
