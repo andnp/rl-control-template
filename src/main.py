@@ -96,21 +96,6 @@ for idx in indices:
     # force the data to always have same length
     collector.fillRest('step_return', exp.total_steps)
 
-# -------------------------
-# -- [Optional] Plotting --
-# -------------------------
-
-# import matplotlib.pyplot as plt
-# from src.utils.plotting import plot
-# fig, ax1 = plt.subplots(1)
-
-# return_data = collector.getStats('return')
-# plot(ax1, return_data)
-# ax1.set_title('Return')
-
-# plt.show()
-# exit()
-
 # ------------
 # -- Saving --
 # ------------
