@@ -1,3 +1,4 @@
+import numpy as np
 from PyRlEnvs.domains.MountainCar import GymMountainCar as Env
 from PyExpUtils.utils.Collector import Collector
 from PyFixedReps.BaseRepresentation import BaseRepresentation
@@ -8,13 +9,11 @@ def minMax(x, mi, ma):
     return (x - mi) / (ma - mi)
 
 class MCScaledRep(BaseRepresentation):
+    _u = np.array([0.5, 0.07])
+    _l = np.array([-1.2, -0.07])
+
     def encode(self, s, a=None):
-        p, v = s
-
-        sp = minMax(p, -1.2, 0.5)
-        sv = minMax(v, -0.07, 0.07)
-
-        return sp, sv
+        return (s - self._l) / (self._u - self._l)
 
 class MountainCar(BaseProblem):
     def __init__(self, exp: ExperimentModel, idx: int, collector: Collector):

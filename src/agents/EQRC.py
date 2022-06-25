@@ -74,8 +74,16 @@ class EQRC(BaseAgent):
 
     # public facing value function approximation
     def values(self, x: np.ndarray):
-        x = np.asarray(x).reshape((1,) + x.shape)
-        return self._values(self.params['w'], x)[0]
+        x = np.asarray(x)
+
+        # if x is a vector, then jax handles a lack of "batch" dimension gracefully
+        #   at a 5x speedup
+        # if x is a tensor, jax does not handle lack of "batch" dim gracefully
+        if len(x.shape) > 1:
+            x = np.expand_dims(x, 0)
+            return self._values(self.params['w'], x)[0]
+
+        return self._values(self.params['w'], x)
 
     # compute the total QRC loss for both sets of parameters (value parameters and h parameters)
     def _loss(self, params, batch: Batch):

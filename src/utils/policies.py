@@ -6,7 +6,7 @@ from PyExpUtils.utils.random import sample
 from PyExpUtils.utils.arrays import argsmax
 
 class Policy:
-    def __init__(self, probs: Callable[[Any], NpList], rng=np.random):
+    def __init__(self, probs: Callable[[Any], NpList], rng: np.random.RandomState):
         self.probs = probs
         self.random = rng
 
@@ -18,13 +18,13 @@ class Policy:
         probs = self.probs(s)
         return probs[a] / other.probs(s)[a]
 
-def fromStateArray(probs: Sequence[NpList]):
-    return Policy(lambda s: probs[s])
+def fromStateArray(probs: Sequence[NpList], rng: np.random.RandomState):
+    return Policy(lambda s: probs[s], rng)
 
-def fromActionArray(probs: NpList):
-    return Policy(lambda s: probs)
+def fromActionArray(probs: NpList, rng: np.random.RandomState):
+    return Policy(lambda s: probs, rng)
 
-def createEGreedy(get_values: Callable[[Any], np.ndarray], actions: int, epsilon: float, rng=np.random):
+def createEGreedy(get_values: Callable[[Any], np.ndarray], actions: int, epsilon: float, rng: np.random.RandomState):
     probs = lambda state: egreedy_probabilities(get_values(state), actions, epsilon)
 
     return Policy(probs, rng)

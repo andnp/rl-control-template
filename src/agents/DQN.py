@@ -70,10 +70,18 @@ class DQN(BaseAgent):
     def _values(self, params: hk.Params, x: np.ndarray):
         return self.value_net.apply(params, x)[0]
 
-    # get value function Q(s, \cdot)
+    # public facing value function approximation
     def values(self, x: np.ndarray):
-        x = np.asarray(x).reshape((1,) + x.shape)
-        return self._values(self.net_params, x)[0]
+        x = np.asarray(x)
+
+        # if x is a vector, then jax handles a lack of "batch" dimension gracefully
+        #   at a 5x speedup
+        # if x is a tensor, jax does not handle lack of "batch" dim gracefully
+        if len(x.shape) > 1:
+            x = np.expand_dims(x, 0)
+            return self._values(self.net_params, x)[0]
+
+        return self._values(self.net_params, x)
 
     def _loss(self, params: hk.Params, target: hk.Params, batch: Batch):
         qs, _ = self.value_net.apply(params, batch.x)
