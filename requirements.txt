@@ -1,7 +1,7 @@
 # custom minatar with jit compiled environments
 git+ssh://git@github.com/andnp/MinAtar
 
-gym>=0.17.2
+gym>=0.24.1
 box2d-py>=2.3.2
 numba>=0.55.0
 jax>=0.2.14
