@@ -22,10 +22,12 @@ jax.config.update('jax_platform_name', 'cpu')
 logging.getLogger('absl').setLevel(logging.ERROR)
 logging.getLogger('filelock').setLevel(logging.ERROR)
 logging.getLogger('numba').setLevel(logging.WARNING)
-prod = len(sys.argv) == 4 or 'cdr' in socket.gethostname()
+logger = logging.getLogger('exp')
+prod = 'cdr' in socket.gethostname()
 # prod = True
 if not prod:
     logging.basicConfig(level=logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
 
 # ------------------
 # -- Command Args --
@@ -82,7 +84,7 @@ for idx in indices:
             avg_time = 1000 * (time.time() - start_time) / step
             fps = step / (time.time() - start_time)
 
-            logging.debug(f' {episode} {step} {glue.total_reward} {avg_time:.4}ms {int(fps)}')
+            logger.debug(f' {episode} {step} {glue.total_reward} {avg_time:.4}ms {int(fps)}')
 
             glue.start()
 
