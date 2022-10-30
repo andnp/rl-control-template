@@ -2,16 +2,16 @@
     "agent": "DQN",
     "problem": "MountainCar",
     "total_steps": 100000,
-    "episode_cutoff": 500,
+    "episode_cutoff": 5000,
     "metaParameters": {
         "epsilon": 0.1,
-        "target_refresh": 32,
+        "target_refresh": 256,
         "buffer_size": 4000,
         "batch": 32,
 
         "optimizer": {
             "name": "ADAM",
-            "alpha": 0.000122070312,
+            "alpha": 0.001,
             "beta1": 0.9,
             "beta2": 0.999
         },

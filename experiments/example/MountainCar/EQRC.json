@@ -2,7 +2,7 @@
     "agent": "EQRC",
     "problem": "MountainCar",
     "total_steps": 100000,
-    "episode_cutoff": 500,
+    "episode_cutoff": 5000,
     "metaParameters": {
         "epsilon": 0.1,
         "buffer_size": 4000,
@@ -10,7 +10,7 @@
 
         "optimizer": {
             "name": "ADAM",
-            "alpha": 0.002,
+            "alpha": 0.001,
             "beta1": 0.9,
             "beta2": 0.999
         },

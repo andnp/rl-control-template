@@ -9,7 +9,7 @@ The difference between a template and a clone is that changes made in a template
 
 ---
 ## Setting up repo
-**This codebase only works with python 3.8 and above.**
+**This codebase only works with python 3.9 and above.**
 
 Packages are stored in a `requirements.txt` file.
 To install:

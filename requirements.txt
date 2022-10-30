@@ -11,7 +11,7 @@ numpy==1.22.*
 PyFixedReps-andnp>=1.0.0
 PyExpUtils-andnp>=3.0.0
 pyrlenvs-andnp>=1.0.0
-ReplayTables-andnp>=0.1.1
+ReplayTables-andnp>=1.0.0
 RlGlue-andnp
 PyExpPlotting-andnp
 

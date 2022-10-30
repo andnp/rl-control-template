@@ -8,12 +8,17 @@ from agents.BaseAgent import BaseAgent
 from utils.policies import createEGreedy
 from representations.networks import getNetwork
 
-from utils.jax import Batch
+from utils.jax import Batch, vmap_except
 
 import jax
 import optax
 import jax.numpy as jnp
 import haiku as hk
+
+
+tree_leaves = jax.tree_util.tree_leaves
+tree_map = jax.tree_util.tree_map
+
 
 class EQRC(BaseAgent):
     def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
@@ -42,6 +47,7 @@ class EQRC(BaseAgent):
         }
 
         # set up the optimizer
+        self.stepsize = self.optimizer_params['alpha']
         self.optimizer = optax.adam(
             self.optimizer_params['alpha'],
             self.optimizer_params['beta1'],
@@ -98,14 +104,12 @@ class EQRC(BaseAgent):
         # apply qc loss function to each sample in the minibatch
         # gives back value of the loss individually for parameters of v and h
         # note QC instead of QRC (i.e. no regularization)
-        v_loss, h_loss = jax.vmap(partial(qc_loss, self.epsilon), in_axes=0)(q, batch.a, batch.r, batch.gamma, qtp1, h)
+        v_loss, h_loss = qc_loss(q, batch.a, batch.r, batch.gamma, qtp1, h, self.epsilon)
 
         h_loss = h_loss.mean()
         v_loss = v_loss.mean()
 
-        regularizer = sum(jnp.sum(jnp.square(p)) for p in jax.tree_leaves(params['h']))
-
-        return v_loss + h_loss + self.beta * regularizer
+        return v_loss + h_loss
 
     # compute the update and return the new parameter states
     # and optimizer state (i.e. ADAM moving averages)
@@ -114,6 +118,14 @@ class EQRC(BaseAgent):
         delta, grad = jax.value_and_grad(self._loss)(params, batch)
 
         updates, state = self.optimizer.update(grad, opt, params)
+
+        decay = tree_map(
+            lambda h, dh: dh - self.stepsize * self.beta * h,
+            params['h'],
+            updates['h'],
+        )
+
+        updates |= {'h': decay}
         params = optax.apply_updates(params, updates)
 
         return jnp.sqrt(delta), state, params
@@ -165,7 +177,8 @@ def _argmax_with_random_tie_breaking(preferences):
     optimal_actions = (preferences == preferences.max(axis=-1, keepdims=True))
     return optimal_actions / optimal_actions.sum(axis=-1, keepdims=True)
 
-def qc_loss(epsilon, q, a, r, gamma, qtp1, h):
+@partial(vmap_except, exclude=['epsilon'])
+def qc_loss(q, a, r, gamma, qtp1, h, epsilon):
     pi = _argmax_with_random_tie_breaking(qtp1)
 
     pi = (1.0 - epsilon) * pi + (epsilon / qtp1.shape[0])

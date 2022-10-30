@@ -2,7 +2,7 @@
     "agent": "ESARSA",
     "problem": "MountainCar",
     "total_steps": 100000,
-    "episode_cutoff": 500,
+    "episode_cutoff": 5000,
     "metaParameters": {
         "alpha": [0.5],
         "epsilon": [0.1, 0.05, 0.15],
