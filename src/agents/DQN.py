@@ -61,9 +61,12 @@ class DQN(BaseAgent):
         ])
 
         # build the policy
-        self.policy = createEGreedy(self.values, self.actions, self.epsilon, self.rng)
+        self._policy = createEGreedy(self.values, self.actions, self.epsilon, self.rng)
 
         self.steps = 0
+
+    def policy(self, obs: np.ndarray) -> int:
+        return self._policy.selectAction(obs)
 
     # internal compiled version of the value function
     @partial(jax.jit, static_argnums=0)
@@ -114,15 +117,15 @@ class DQN(BaseAgent):
 
         return delta
 
-    def update(self, s, a, sp, r, gamma):
+    def update(self, x, a, xp, r, gamma):
         self.steps += 1
 
         # if gamma is zero, we have a terminal state
         if gamma == 0:
-            sp = np.zeros_like(s)
+            xp = np.zeros_like(x)
 
         # always add to the buffer
-        self.buffer.addTuple((s, a, sp, r, gamma))
+        self.buffer.addTuple((x, a, xp, r, gamma))
 
         # only update every `update_freq` steps
         if self.steps % self.update_freq != 0:

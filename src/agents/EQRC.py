@@ -70,7 +70,10 @@ class EQRC(BaseAgent):
         ])
 
         # build the policy
-        self.policy = createEGreedy(self.values, self.actions, self.epsilon, self.rng)
+        self._policy = createEGreedy(self.values, self.actions, self.epsilon, self.rng)
+
+    def policy(self, obs: np.ndarray) -> int:
+        return self._policy.selectAction(obs)
 
     # jit'ed internal value function approximator
     # considerable speedup, especially for larger networks (note: haiku networks are not jit'ed by default)
@@ -145,16 +148,16 @@ class EQRC(BaseAgent):
         return delta
 
     # Public facing update function
-    def update(self, s, a, sp, r, gamma):
+    def update(self, x, a, xp, r, gamma):
         self.steps += 1
         # If gamma is zero, then we are at a terminal state
         # it doesn't really matter what sp is represented as, since we will multiply it by gamma=0 later anyways
         # however, setting sp = nan (which is more semantically correct) causes some issues with autograd
         if gamma == 0:
-            sp = np.zeros_like(s)
+            xp = np.zeros_like(x)
 
         # always add to the buffer
-        self.buffer.addTuple((s, a, sp, r, gamma))
+        self.buffer.addTuple((x, a, xp, r, gamma))
 
         # only update every `update_freq` steps
         if self.steps % self.update_freq != 0:

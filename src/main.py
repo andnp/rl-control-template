@@ -11,7 +11,6 @@ from RlGlue import RlGlue
 from PyExpUtils.utils.Collector import Collector
 from experiment import ExperimentModel
 from problems.registry import getProblem
-from utils.rlglue import OneStepWrapper
 
 # ---------------------------
 # -- Library Configuration --
@@ -58,8 +57,7 @@ for idx in indices:
     agent = problem.getAgent()
     env = problem.getEnvironment()
 
-    wrapper = OneStepWrapper(agent, problem.gamma, problem.rep)
-    glue = RlGlue(wrapper, env)
+    glue = RlGlue(agent, env)
 
     # Run the experiment
     glue.start()

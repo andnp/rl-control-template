@@ -45,8 +45,16 @@ class ESARSA(BaseAgent):
         self.w = np.zeros((actions, self.rep.features()))
 
         # create a policy
-        self.policy = createEGreedy(lambda state: value(self.w, state), self.actions, self.epsilon, self.rng)
+        self._policy = createEGreedy(lambda state: value(self.w, state), self.actions, self.epsilon, self.rng)
+
+    def policy(self, obs: np.ndarray) -> int:
+        return self._policy.selectAction(obs)
 
     def update(self, x, a, xp, r, gamma):
-        pi = self.policy.probs(xp)
+        if xp is None:
+            xp = np.zeros_like(x)
+            pi = np.zeros(self.actions)
+        else:
+            pi = self._policy.probs(xp)
+
         _update(self.w, x, a, xp, pi, r, gamma, self.alpha)

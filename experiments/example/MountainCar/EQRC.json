@@ -7,6 +7,7 @@
         "epsilon": 0.1,
         "buffer_size": 4000,
         "batch": 32,
+        "n_step": 3,
 
         "optimizer": {
             "name": "ADAM",
