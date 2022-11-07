@@ -1,0 +1,26 @@
+{
+    "agent": "DQN",
+    "problem": "Breakout",
+    "total_steps": 100000,
+    "episode_cutoff": -1,
+    "metaParameters": {
+        "epsilon": 0.05,
+        "target_refresh": 32,
+        "buffer_size": 10000,
+        "batch": 32,
+        "update_freq": 4,
+        "use_per": true,
+
+        "optimizer": {
+            "name": "ADAM",
+            "alpha": 0.000122070312,
+            "beta1": 0.9,
+            "beta2": 0.999
+        },
+
+        "representation": {
+            "type": "MinatarNet",
+            "hidden": 128
+        }
+    }
+}

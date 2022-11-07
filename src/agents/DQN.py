@@ -4,7 +4,8 @@ import numpy as np
 import copy
 
 from PyExpUtils.utils.Collector import Collector
-from ReplayTables.Table import Table
+from ReplayTables.ReplayBuffer import ReplayBuffer
+from ReplayTables.PER import PrioritizedReplay
 from agents.BaseAgent import BaseAgent
 from representations.networks import NetworkBuilder
 
@@ -21,8 +22,11 @@ def q_loss(q, a, r, gamma, qp):
     vp = qp.max()
     target = r + gamma * vp
     target = jax.lax.stop_gradient(target)
+    delta = target - q[a]
 
-    return huber_loss(1.0, q[a], target)
+    return huber_loss(1.0, q[a], target), {
+        'delta': delta,
+    }
 
 class DQN(BaseAgent):
     def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
@@ -53,15 +57,21 @@ class DQN(BaseAgent):
         # set up the experience replay buffer
         self.buffer_size = params['buffer_size']
         self.batch_size = params['batch']
-        self.update_freq = params.get('update_freq', 1)
-        self.buffer = Table(max_size=self.buffer_size, seed=seed, columns=[
-            { 'name': 'Obs', 'shape': observations },
-            { 'name': 'Action', 'shape': 1, 'dtype': 'int_' },
-            { 'name': 'NextObs', 'shape': observations },
-            { 'name': 'Reward', 'shape': 1 },
-            { 'name': 'Discount', 'shape': 1 },
-        ])
 
+        if params.get('use_per', False):
+            self.buffer = PrioritizedReplay(
+                max_size=self.buffer_size,
+                structure=Batch,
+                rng=np.random.RandomState(seed),
+            )
+        else:
+            self.buffer = ReplayBuffer(
+                max_size=self.buffer_size,
+                structure=Batch,
+                rng=np.random.RandomState(seed),
+            )
+
+        self.update_freq = params.get('update_freq', 1)
         self.steps = 0
 
     # internal compiled version of the value function
@@ -83,31 +93,35 @@ class DQN(BaseAgent):
 
         return self._values(self.net_params, x)
 
-    def _loss(self, params: hk.Params, target: hk.Params, batch: Batch):
+    def _loss(self, params: hk.Params, target: hk.Params, batch: Batch, weights: chex.Array):
         phi = self.phi(params, batch.x).out
         phi_p = self.phi(target, batch.xp).out
 
         qs = self.q(params, phi)
         qsp = self.q(target, phi_p)
 
-        losses = jax.vmap(q_loss, in_axes=0)(qs, batch.a, batch.r, batch.gamma, qsp)
+        batch_loss = jax.vmap(q_loss, in_axes=0)
+        losses, metrics = batch_loss(qs, batch.a, batch.r, batch.gamma, qsp)
 
-        return losses.mean()
+        chex.assert_equal_shape((weights, losses))
+        loss = jnp.mean(weights * losses)
+
+        return loss, metrics
 
     @partial(jax.jit, static_argnums=0)
-    def _computeUpdate(self, params: hk.Params, target: hk.Params, opt: Any, batch: Batch):
-        delta, grad = jax.value_and_grad(self._loss)(params, target, batch)
+    def _computeUpdate(self, params: hk.Params, target: hk.Params, opt: Any, batch: Batch, weights: chex.Array):
+        grad, metrics = jax.grad(self._loss, has_aux=True)(params, target, batch, weights)
 
         updates, state = self.optimizer.update(grad, opt, params)
         params = optax.apply_updates(params, updates)
 
-        return jnp.sqrt(delta), state, params
+        return state, params, metrics
 
-    def updateNetwork(self, batch: Batch):
+    def updateNetwork(self, batch: Batch, weights: np.ndarray):
         # note that we need to pass in net_params, target_params, and opt_state as arguments here
         # we only have access to a cached version of "self" within these functions due to jax.jit
         # so we need to manually maintain the stateful portion ourselves
-        delta, state, params = self._computeUpdate(self.net_params, self.target_params, self.opt_state, batch)
+        state, params, metrics = self._computeUpdate(self.net_params, self.target_params, self.opt_state, batch, weights)
 
         self.net_params = params
         self.opt_state = state
@@ -115,7 +129,7 @@ class DQN(BaseAgent):
         if self.steps % self.target_refresh == 0:
             self.target_params = params
 
-        return delta
+        return metrics
 
     def update(self, x, a, xp, r, gamma):
         self.steps += 1
@@ -125,14 +139,24 @@ class DQN(BaseAgent):
             xp = np.zeros_like(x)
 
         # always add to the buffer
-        self.buffer.addTuple((x, a, xp, r, gamma))
+        self.buffer.add(Batch(
+            x=x,
+            a=a,
+            xp=xp,
+            r=r,
+            gamma=gamma,
+        ))
 
         # only update every `update_freq` steps
         if self.steps % self.update_freq != 0:
             return
 
         # skip updates if the buffer isn't full yet
-        if len(self.buffer) > self.batch_size:
-            samples = self.buffer.sample(self.batch_size)
-            batch = Batch(*samples)
-            self.updateNetwork(batch)
+        if self.buffer.size() > self.batch_size:
+            batch, idxs, weights = self.buffer.sample(self.batch_size)
+            metrics = self.updateNetwork(batch, weights)
+
+            if isinstance(self.buffer, PrioritizedReplay):
+                priorities = jax.device_get(metrics['delta'])
+                priorities = np.abs(priorities)
+                self.buffer.update_priorities(idxs, priorities)

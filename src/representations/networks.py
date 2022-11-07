@@ -12,7 +12,7 @@ ModuleBuilder = Callable[[], Callable[[chex.Array], chex.Array]]
 
 class NetworkBuilder:
     def __init__(self, input_shape: Tuple, params: Dict[str, Any], seed: int):
-        self._input_shape = input_shape
+        self._input_shape = tuple(input_shape)
         self._h_params = params
         self._rng, feat_rng = jax.random.split(jax.random.PRNGKey(seed))
 
