@@ -5,7 +5,7 @@
     "episode_cutoff": -1,
     "metaParameters": {
         "epsilon": 0.1,
-        "target_refresh": 32,
+        "target_refresh": 128,
         "buffer_size": 4000,
         "batch": 32,
 

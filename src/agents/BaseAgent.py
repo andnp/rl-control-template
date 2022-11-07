@@ -7,6 +7,8 @@ from PyFixedReps.BaseRepresentation import BaseRepresentation
 from ReplayTables.LagBuffer import LagBuffer, Experience
 import RlGlue.agent
 
+from utils.policies import createEGreedy
+
 class IdentityRep(BaseRepresentation):
     def encode(self, s, a=None):
         return s
@@ -31,7 +33,36 @@ class BaseAgent(RlGlue.agent.BaseAgent):
 
         self.gamma = params.get('gamma', 1)
         self.n_step = params.get('n_step', 1)
+        self.epsilon = params.get('epsilon', 0)
         self.lag = LagBuffer(lag=self.n_step)
+
+        self._policy = createEGreedy(self.values, self.actions, self.epsilon, self.rng)
+
+    # ----------------------
+    # -- Default settings --
+    # ----------------------
+    def policy(self, obs: np.ndarray) -> int:
+        return self._policy.selectAction(obs)
+
+    # ------------------------
+    # -- Subclass contracts --
+    # ------------------------
+
+    @abstractmethod
+    def values(self, x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def update(self, x, a, xp, r, gamma):
+        pass
+
+    @abstractmethod
+    def cleanup(self):
+        pass
+
+    # ----------------------
+    # -- RLGlue interface --
+    # ----------------------
 
     def start(self, s: np.ndarray):
         self.lag.flush()
@@ -93,15 +124,3 @@ class BaseAgent(RlGlue.agent.BaseAgent):
             )
 
         self.lag.flush()
-
-    @abstractmethod
-    def policy(self, obs: np.ndarray) -> int:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def update(self, x, a, xp, r, gamma):
-        pass
-
-    @abstractmethod
-    def cleanup(self):
-        pass

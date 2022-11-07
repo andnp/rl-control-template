@@ -2,15 +2,16 @@ from inspect import signature, Parameter
 from typing import Callable, List, NamedTuple, Sequence, TypeVar, Union
 import numpy as np
 
+import chex
 import jax
 import jax.numpy as jnp
 
 Batch = NamedTuple('Batch', [
-    ('x', np.ndarray),
-    ('a', np.ndarray),
-    ('xp', np.ndarray),
-    ('r', np.ndarray),
-    ('gamma', np.ndarray),
+    ('x', chex.Array),
+    ('a', chex.Array),
+    ('xp', chex.Array),
+    ('r', chex.Array),
+    ('gamma', chex.Array),
 ])
 
 def mse_loss(pred: np.ndarray, target: np.ndarray):

@@ -4,6 +4,7 @@ git+ssh://git@github.com/andnp/MinAtar
 gym>=0.24.1
 box2d-py>=2.3.2
 numba>=0.55.0
+chex>=0.1.5
 jax>=0.2.14
 dm-haiku>=0.0.4
 optax>=0.0.8

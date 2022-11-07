@@ -50,6 +50,10 @@ class ESARSA(BaseAgent):
     def policy(self, obs: np.ndarray) -> int:
         return self._policy.selectAction(obs)
 
+    def values(self, x: np.ndarray):
+        x = np.asarray(x)
+        return value(self.w, x)
+
     def update(self, x, a, xp, r, gamma):
         if xp is None:
             xp = np.zeros_like(x)

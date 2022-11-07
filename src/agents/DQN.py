@@ -6,15 +6,16 @@ import copy
 from PyExpUtils.utils.Collector import Collector
 from ReplayTables.Table import Table
 from agents.BaseAgent import BaseAgent
-from representations.networks import getNetwork
-from utils.policies import createEGreedy
+from representations.networks import NetworkBuilder
 
 from utils.jax import huber_loss, Batch
 
 import jax
+import chex
 import optax
 import jax.numpy as jnp
 import haiku as hk
+
 
 def q_loss(q, a, r, gamma, qp):
     vp = qp.max()
@@ -31,9 +32,13 @@ class DQN(BaseAgent):
 
         self.epsilon = params['epsilon']
 
-        # set up initialization of the value function network
-        # and target network
-        self.value_net, self.net_params = getNetwork(observations, actions, self.rep_params, seed)
+        # build the value function approximator
+        builder = NetworkBuilder(observations, self.rep_params, seed)
+        self.q = builder.addHead(lambda: hk.Linear(actions, name='q'))
+        self.phi = builder.getFeatureFunction()
+        self.net_params = builder.getParams()
+
+        # set up the target network parameters
         self.target_params = copy.deepcopy(self.net_params)
         self.target_refresh = params.get('target_refresh', 1)
 
@@ -49,9 +54,6 @@ class DQN(BaseAgent):
         self.buffer_size = params['buffer_size']
         self.batch_size = params['batch']
         self.update_freq = params.get('update_freq', 1)
-
-        # an empty tuple is treated as a null dimension. So these end up as
-        # a vector of length buffer_size, instead of a (buffer_size x 1) matrix
         self.buffer = Table(max_size=self.buffer_size, seed=seed, columns=[
             { 'name': 'Obs', 'shape': observations },
             { 'name': 'Action', 'shape': 1, 'dtype': 'int_' },
@@ -60,18 +62,13 @@ class DQN(BaseAgent):
             { 'name': 'Discount', 'shape': 1 },
         ])
 
-        # build the policy
-        self._policy = createEGreedy(self.values, self.actions, self.epsilon, self.rng)
-
         self.steps = 0
-
-    def policy(self, obs: np.ndarray) -> int:
-        return self._policy.selectAction(obs)
 
     # internal compiled version of the value function
     @partial(jax.jit, static_argnums=0)
-    def _values(self, params: hk.Params, x: np.ndarray):
-        return self.value_net.apply(params, x)[0]
+    def _values(self, params: hk.Params, x: chex.Array):
+        phi = self.phi(params, x).out
+        return self.q(params, phi)
 
     # public facing value function approximation
     def values(self, x: np.ndarray):
@@ -87,8 +84,11 @@ class DQN(BaseAgent):
         return self._values(self.net_params, x)
 
     def _loss(self, params: hk.Params, target: hk.Params, batch: Batch):
-        qs, _ = self.value_net.apply(params, batch.x)
-        qsp, _ = self.value_net.apply(target, batch.xp)
+        phi = self.phi(params, batch.x).out
+        phi_p = self.phi(target, batch.xp).out
+
+        qs = self.q(params, phi)
+        qsp = self.q(target, phi_p)
 
         losses = jax.vmap(q_loss, in_axes=0)(qs, batch.a, batch.r, batch.gamma, qsp)
 

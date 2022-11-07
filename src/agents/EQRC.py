@@ -5,20 +5,25 @@ import numpy as np
 from PyExpUtils.utils.Collector import Collector
 from ReplayTables.Table import Table
 from agents.BaseAgent import BaseAgent
-from utils.policies import createEGreedy
-from representations.networks import getNetwork
+from representations.networks import NetworkBuilder
 
+import utils.chex as cxu
+import utils.hk as hku
 from utils.jax import Batch, vmap_except
 
 import jax
+import chex
 import optax
-import jax.numpy as jnp
 import haiku as hk
 
 
 tree_leaves = jax.tree_util.tree_leaves
 tree_map = jax.tree_util.tree_map
 
+@cxu.dataclass
+class AgentState:
+    params: Dict[str, Any]
+    optim: optax.OptState
 
 class EQRC(BaseAgent):
     def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
@@ -29,22 +34,17 @@ class EQRC(BaseAgent):
         self.epsilon = params['epsilon']
         self.beta = params.get('beta', 1.)
 
-        # set up initialization of the value function network
-        # and target network
-        self.value_net, net_params = getNetwork(observations, actions, self.rep_params, seed)
+        # build the value function and h network.
+        # built in three parts:
+        #  (1) obs -> features (i.e. everything up to the second-to-last layer)
+        #  (2) features -> q
+        #  (3) features -> h
+        builder = NetworkBuilder(observations, self.rep_params, seed)
+        self.q = builder.addHead(lambda: hku.DuelingHeads(actions, name='q'))
+        self.h = builder.addHead(lambda: hku.DuelingHeads(actions, name='h'))
+        self.phi = builder.getFeatureFunction()
 
-        # to build the secondary weights, we need to know the size of the "feature layer" of our nn
-        # there is almost certainly a better way than this, but it's fine
-        _, x = self.value_net.apply(net_params, jnp.zeros((1,) + tuple(observations)))
-
-        h = partial(buildH, actions)
-        self.h = hk.without_apply_rng(hk.transform(h))
-        h_params = self.h.init(jax.random.PRNGKey(seed), x)
-
-        self.params = {
-            'w': net_params,
-            'h': h_params
-        }
+        all_params = builder.getParams()
 
         # set up the optimizer
         self.stepsize = self.optimizer_params['alpha']
@@ -53,7 +53,13 @@ class EQRC(BaseAgent):
             self.optimizer_params['beta1'],
             self.optimizer_params['beta2'],
         )
-        self.opt_state = self.optimizer.init(self.params)
+        opt_state = self.optimizer.init(all_params)
+
+        # set up agent state
+        self.state = AgentState(
+            params=all_params,
+            optim=opt_state,
+        )
 
         # set up the experience replay buffer
         self.buffer_size = params['buffer_size']
@@ -69,17 +75,12 @@ class EQRC(BaseAgent):
             { 'name': 'Discount', 'shape': 1 },
         ])
 
-        # build the policy
-        self._policy = createEGreedy(self.values, self.actions, self.epsilon, self.rng)
-
-    def policy(self, obs: np.ndarray) -> int:
-        return self._policy.selectAction(obs)
-
     # jit'ed internal value function approximator
     # considerable speedup, especially for larger networks (note: haiku networks are not jit'ed by default)
     @partial(jax.jit, static_argnums=0)
-    def _values(self, params: hk.Params, x: np.ndarray):
-        return self.value_net.apply(params, x)[0]
+    def _values(self, state: AgentState, x: chex.Array):
+        phi = self.phi(state.params, x).out
+        return self.q(state.params, phi)
 
     # public facing value function approximation
     def values(self, x: np.ndarray):
@@ -90,37 +91,42 @@ class EQRC(BaseAgent):
         # if x is a tensor, jax does not handle lack of "batch" dim gracefully
         if len(x.shape) > 1:
             x = np.expand_dims(x, 0)
-            return self._values(self.params['w'], x)[0]
+            return self._values(self.state, x)[0]
 
-        return self._values(self.params['w'], x)
+        return self._values(self.state, x)
 
     # compute the total QRC loss for both sets of parameters (value parameters and h parameters)
     def _loss(self, params, batch: Batch):
-        # forward pass of value function network
-        q, phi = self.value_net.apply(params['w'], batch.x)
-        qtp1, _ = self.value_net.apply(params['w'], batch.xp)
+        phi = self.phi(params, batch.x).out
+        q = self.q(params, phi)
+        h = self.h(params, phi)
 
-        # take the "feature" layer from the value network
-        # and apply a linear function approximator to obtain h(s, a)
-        h = self.h.apply(params['h'], phi)
+        phi_p = self.phi(params, batch.xp).out
+        qp = self.q(params, phi_p)
 
         # apply qc loss function to each sample in the minibatch
         # gives back value of the loss individually for parameters of v and h
         # note QC instead of QRC (i.e. no regularization)
-        v_loss, h_loss = qc_loss(q, batch.a, batch.r, batch.gamma, qtp1, h, self.epsilon)
+        v_loss, h_loss, metrics = qc_loss(q, batch.a, batch.r, batch.gamma, qp, h, self.epsilon)
 
         h_loss = h_loss.mean()
         v_loss = v_loss.mean()
 
-        return v_loss + h_loss
+        metrics |= {
+            'v_loss': v_loss,
+            'h_loss': h_loss,
+        }
+
+        return v_loss + h_loss, metrics
 
     # compute the update and return the new parameter states
     # and optimizer state (i.e. ADAM moving averages)
     @partial(jax.jit, static_argnums=0)
-    def _computeUpdate(self, params: hk.Params, opt: Any, batch: Batch):
-        delta, grad = jax.value_and_grad(self._loss)(params, batch)
+    def _computeUpdate(self, state: AgentState, batch: Batch):
+        params = state.params
+        grad, metrics = jax.grad(self._loss, has_aux=True)(params, batch)
 
-        updates, state = self.optimizer.update(grad, opt, params)
+        updates, new_optim = self.optimizer.update(grad, state.optim, params)
 
         decay = tree_map(
             lambda h, dh: dh - self.stepsize * self.beta * h,
@@ -129,23 +135,22 @@ class EQRC(BaseAgent):
         )
 
         updates |= {'h': decay}
-        params = optax.apply_updates(params, updates)
+        new_params = optax.apply_updates(params, updates)
 
-        return jnp.sqrt(delta), state, params
+        new_state = AgentState(
+            params=new_params,
+            optim=new_optim,
+        )
 
-    # uses fast functional API to compute new parameters
-    # then assign those parameters to the stateful OOP API
-    # to maintain similarity to other non-jax algorithm code
+        return new_state, metrics
+
     def _updateNetwork(self, batch: Batch):
-        # note that we need to pass in net_params, target_params, and opt_state as arguments here
         # we only have access to a cached version of "self" within these functions due to jax.jit
         # so we need to manually maintain the stateful portion ourselves
-        delta, state, params = self._computeUpdate(self.params, self.opt_state, batch)
+        state, metrics = self._computeUpdate(self.state, batch)
+        self.state = state
 
-        self.params = params
-        self.opt_state = state
-
-        return delta
+        return metrics
 
     # Public facing update function
     def update(self, x, a, xp, r, gamma):
@@ -167,14 +172,10 @@ class EQRC(BaseAgent):
         if len(self.buffer) > self.batch_size:
             samples = self.buffer.sample(self.batch_size)
             batch = Batch(*samples)
-            self._updateNetwork(batch)
+            metrics = self._updateNetwork(batch)
+            for k, v in metrics.items():
+                self.collector.collect(k, v)
 
-def buildH(actions: int, x: np.ndarray):
-    h = hk.Sequential([
-        hk.Linear(actions, w_init=hk.initializers.Constant(0), b_init=hk.initializers.Constant(0))
-    ])
-
-    return h(jax.lax.stop_gradient(x))
 
 def _argmax_with_random_tie_breaking(preferences):
     optimal_actions = (preferences == preferences.max(axis=-1, keepdims=True))
@@ -197,4 +198,7 @@ def qc_loss(q, a, r, gamma, qtp1, h, epsilon):
     v_loss = 0.5 * delta**2 + gamma * jax.lax.stop_gradient(delta_hat) * vtp1
     h_loss = 0.5 * (jax.lax.stop_gradient(delta) - delta_hat)**2
 
-    return v_loss, h_loss
+    return v_loss, h_loss, {
+        'delta': delta,
+        'h': delta_hat,
+    }
