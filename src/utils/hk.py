@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Optional, Sequence, Union
+from typing import Callable, Dict, Optional, Sequence
 import jax.numpy as jnp
 import haiku as hk
 import chex
