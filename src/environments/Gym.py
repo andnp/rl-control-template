@@ -12,9 +12,10 @@ class Gym(BaseEnvironment):
             self.env._max_episode_steps = max_steps
 
     def start(self):
-        return self.env.reset(seed=self.seed)
+        s, info = self.env.reset(seed=self.seed)
+        return s
 
     def step(self, a):
-        sp, r, t, info = self.env.step(a)
+        sp, r, t, _, info = self.env.step(a)
 
         return (r, sp, t)

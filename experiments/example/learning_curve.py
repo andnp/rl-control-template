@@ -1,61 +1,58 @@
 import os
 import sys
-import matplotlib.pyplot as plt
 sys.path.append(os.getcwd() + '/src')
 
-from PyExpPlotting.learning_curves import plotBest
-from PyExpPlotting.tools import findExperiments
+import numpy as np
+import matplotlib.pyplot as plt
 from PyExpPlotting.matplot import save, setDefaultConference
+from PyExpUtils.results.Collection import ResultCollection
+from PyExpUtils.results.tools import collapseRuns
 
-from PyExpUtils.utils.dict import get
-from PyExpUtils.results.results import loadResults
-from analysis.results import findExpPath
-from analysis.colors import basicControlColors
+from analysis.confidence_intervals import bootstrapCI
+from experiment.ExperimentModel import ExperimentModel
 from experiment.tools import parseCmdLineArgs
-from experiment import ExperimentModel
 
 # makes sure figures are right size for the paper/column widths
 # also sets fonts to be right size when saving
 setDefaultConference('jmlr')
 
-def whereParameterEquals(results, param, value):
-    return filter(lambda r: get(r.params, param, value) == value, results)
-
-ALG_ORDER = ['DQN', 'EQRC', 'ESARSA']
-
-def generatePlot(ax, exp_paths):
-    for alg in ALG_ORDER:
-        exp_path = findExpPath(exp_paths, alg)
-
-        exp = ExperimentModel.load(exp_path)
-        results = loadResults(exp, 'step_return.h5')
-
-        plotBest(results, ax, {
-            'color': basicControlColors.get(alg),
-            'label': alg,
-            'prefer': 'big',
-        })
-
+COLORS = {
+    'EQRC': 'blue',
+    'ESARSA': 'red',
+    'DQN': 'black',
+    'PrioritizedDQN': 'purple',
+}
 
 if __name__ == "__main__":
     path, should_save, save_type = parseCmdLineArgs()
 
-    exps = findExperiments(key='{domain}')
-    for domain in exps:
-        print(domain)
+    collection = ResultCollection.fromExperiments('step_return', Model=ExperimentModel)
+    collection.apply(collapseRuns)
 
-        f, axes = plt.subplots(1)
-        generatePlot(axes, exps[domain])
+    for env in collection.keys():
+        print(env)
+        algs = list(collection[env])
+        f, ax = plt.subplots()
+        for alg in collection[env]:
+            df = collection[env, alg]
 
-        if should_save:
-            save(
-                save_path=f'{path}/plots',
-                plot_name=domain,
-                save_type=save_type,
-                width=1,
-                f=f,
-            )
+            best_idx = df['data'].apply(np.mean).argmin()
+            best_data = np.asarray(df.iloc[best_idx]['data'])
+            print('-' * 30)
+            print(alg)
+            print(len(best_data))
 
-        else:
-            plt.show()
-            exit()
+            line = bootstrapCI(best_data, bootstraps=1000)
+
+            lo = line[0]
+            avg = line[1]
+            hi = line[2]
+            ax.plot(avg, label=alg, color=COLORS[alg], linewidth=0.25)
+            ax.fill_between(range(line.shape[1]), lo, hi, color=COLORS[alg], alpha=0.2)
+
+        ax.legend()
+        save(
+            save_path=f'{path}/plots',
+            plot_name=f'{env}'
+        )
+        plt.clf()
