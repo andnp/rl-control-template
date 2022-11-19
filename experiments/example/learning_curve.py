@@ -40,7 +40,7 @@ if __name__ == "__main__":
             best_data = np.asarray(df.iloc[best_idx]['data'])
             print('-' * 30)
             print(alg)
-            print(len(best_data))
+            print(df.iloc[best_idx])
 
             line = bootstrapCI(best_data, bootstraps=1000)
 
