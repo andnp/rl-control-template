@@ -44,3 +44,8 @@ def vmap_except(f: F, exclude: Sequence[str]) -> F:
             total[i] = None
 
     return jax.vmap(f, in_axes=total)
+
+
+def argmax_with_random_tie_breaking(preferences):
+    optimal_actions = (preferences == preferences.max(axis=-1, keepdims=True))
+    return optimal_actions / optimal_actions.sum(axis=-1, keepdims=True)

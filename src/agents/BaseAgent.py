@@ -7,7 +7,7 @@ from PyFixedReps.BaseRepresentation import BaseRepresentation
 from ReplayTables.LagBuffer import LagBuffer, Experience
 import RlGlue.agent
 
-from utils.policies import createEGreedy
+from utils.policies import egreedy_probabilities, sample
 
 class IdentityRep(BaseRepresentation):
     def encode(self, s, a=None):
@@ -28,6 +28,7 @@ class BaseAgent(RlGlue.agent.BaseAgent):
         self.params = params
         self.collector = collector
 
+        self.seed = seed
         self.rng = np.random.RandomState(seed)
         self.rep = IdentityRep()
 
@@ -36,13 +37,13 @@ class BaseAgent(RlGlue.agent.BaseAgent):
         self.epsilon = params.get('epsilon', 0)
         self.lag = LagBuffer(lag=self.n_step)
 
-        self._policy = createEGreedy(self.values, self.actions, self.epsilon, self.rng)
-
     # ----------------------
     # -- Default settings --
     # ----------------------
-    def policy(self, obs: np.ndarray) -> int:
-        return self._policy.selectAction(obs)
+    def policy(self, obs: np.ndarray) -> np.ndarray:
+        q = self.values(obs)
+        pi = egreedy_probabilities(q, self.actions, self.epsilon)
+        return pi
 
     # ------------------------
     # -- Subclass contracts --
@@ -69,7 +70,8 @@ class BaseAgent(RlGlue.agent.BaseAgent):
 
         x = self.rep.encode(s)
         x = np.asarray(x)
-        a = self.policy(x)
+        pi = self.policy(x)
+        a = sample(pi, rng=self.rng)
         self.lag.add(Interaction(
             s=x,
             a=a,
@@ -85,7 +87,8 @@ class BaseAgent(RlGlue.agent.BaseAgent):
         if sp is not None:
             xp = self.rep.encode(sp)
             xp = np.asarray(xp)
-            a = self.policy(xp)
+            pi = self.policy(xp)
+            a = sample(pi, rng=self.rng)
 
         interaction = Interaction(
             s=xp,
@@ -124,3 +127,21 @@ class BaseAgent(RlGlue.agent.BaseAgent):
             )
 
         self.lag.flush()
+
+    # -------------------
+    # -- Checkpointing --
+    # -------------------
+
+    def __getstate__(self):
+        return {
+            '__args': (self.observations, self.actions, self.params, self.collector, self.seed),
+            'rng': self.rng,
+            'rep': self.rep,
+            'lag': self.lag,
+        }
+
+    def __setstate__(self, state):
+        self.__init__(*state['__args'])
+        self.rng = state['rng']
+        self.rep = state['rep']
+        self.lag = state['lag']

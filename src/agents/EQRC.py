@@ -9,12 +9,11 @@ from representations.networks import NetworkBuilder
 
 import utils.chex as cxu
 import utils.hk as hku
-from utils.jax import Batch, vmap_except
+from utils.jax import Batch, vmap_except, argmax_with_random_tie_breaking
 
 import jax
 import chex
 import optax
-import haiku as hk
 
 
 tree_leaves = jax.tree_util.tree_leaves
@@ -22,7 +21,7 @@ tree_map = jax.tree_util.tree_map
 
 @cxu.dataclass
 class AgentState:
-    params: Dict[str, Any]
+    params: Any
     optim: optax.OptState
 
 class EQRC(BaseAgent):
@@ -127,6 +126,7 @@ class EQRC(BaseAgent):
         grad, metrics = jax.grad(self._loss, has_aux=True)(params, batch)
 
         updates, new_optim = self.optimizer.update(grad, state.optim, params)
+        assert isinstance(updates, dict)
 
         decay = tree_map(
             lambda h, dh: dh - self.stepsize * self.beta * h,
@@ -143,14 +143,6 @@ class EQRC(BaseAgent):
         )
 
         return new_state, metrics
-
-    def _updateNetwork(self, batch: Batch):
-        # we only have access to a cached version of "self" within these functions due to jax.jit
-        # so we need to manually maintain the stateful portion ourselves
-        state, metrics = self._computeUpdate(self.state, batch)
-        self.state = state
-
-        return metrics
 
     # Public facing update function
     def update(self, x, a, xp, r, gamma):
@@ -169,21 +161,40 @@ class EQRC(BaseAgent):
             return
 
         # also skip updates if the buffer isn't full yet
-        if len(self.buffer) > self.batch_size:
-            samples = self.buffer.sample(self.batch_size)
-            batch = Batch(*samples)
-            metrics = self._updateNetwork(batch)
-            for k, v in metrics.items():
-                self.collector.collect(k, v)
+        if len(self.buffer) <= self.batch_size:
+            return
 
+        # draw some samples from the replay buffer and make an update
+        samples = self.buffer.sample(self.batch_size)
+        batch = Batch(*samples)
+        self.state, metrics = self._computeUpdate(self.state, batch)
+        for k, v in metrics.items():
+            self.collector.collect(k, v)
 
-def _argmax_with_random_tie_breaking(preferences):
-    optimal_actions = (preferences == preferences.max(axis=-1, keepdims=True))
-    return optimal_actions / optimal_actions.sum(axis=-1, keepdims=True)
+    # -------------------
+    # -- Checkpointing --
+    # -------------------
+    def __getstate__(self):
+        state = super().__getstate__()
+        return state | {
+            'buffer': self.buffer,
+            'steps': self.steps,
+            'state': self.state,
+        }
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        self.buffer = state['buffer']
+        self.steps = state['steps']
+        self.state = state['state']
+
+# ---------------
+# -- Utilities --
+# ---------------
 
 @partial(vmap_except, exclude=['epsilon'])
 def qc_loss(q, a, r, gamma, qtp1, h, epsilon):
-    pi = _argmax_with_random_tie_breaking(qtp1)
+    pi = argmax_with_random_tie_breaking(qtp1)
 
     pi = (1.0 - epsilon) * pi + (epsilon / qtp1.shape[0])
     pi = jax.lax.stop_gradient(pi)

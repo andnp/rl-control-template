@@ -1,7 +1,6 @@
 from functools import partial
 from typing import Any, Dict, Tuple
 import numpy as np
-import copy
 
 from PyExpUtils.utils.Collector import Collector
 from ReplayTables.ReplayBuffer import ReplayBuffer
@@ -9,6 +8,7 @@ from ReplayTables.PER import PrioritizedReplay
 from agents.BaseAgent import BaseAgent
 from representations.networks import NetworkBuilder
 
+import utils.chex as cxu
 from utils.jax import huber_loss, Batch
 
 import jax
@@ -16,6 +16,12 @@ import chex
 import optax
 import jax.numpy as jnp
 import haiku as hk
+
+@cxu.dataclass
+class AgentState:
+    params: Any
+    target_params: Any
+    optim: optax.OptState
 
 
 def q_loss(q, a, r, gamma, qp):
@@ -40,10 +46,9 @@ class DQN(BaseAgent):
         builder = NetworkBuilder(observations, self.rep_params, seed)
         self.q = builder.addHead(lambda: hk.Linear(actions, name='q'))
         self.phi = builder.getFeatureFunction()
-        self.net_params = builder.getParams()
+        net_params = builder.getParams()
 
         # set up the target network parameters
-        self.target_params = copy.deepcopy(self.net_params)
         self.target_refresh = params.get('target_refresh', 1)
 
         # set up the optimizer
@@ -52,13 +57,20 @@ class DQN(BaseAgent):
             self.optimizer_params['beta1'],
             self.optimizer_params['beta2'],
         )
-        self.opt_state = self.optimizer.init(self.net_params)
+        opt_state = self.optimizer.init(net_params)
+
+        self.state = AgentState(
+            params=net_params,
+            target_params=net_params,
+            optim=opt_state,
+        )
 
         # set up the experience replay buffer
         self.buffer_size = params['buffer_size']
         self.batch_size = params['batch']
 
         if params.get('use_per', False):
+            print('using per')
             self.buffer = PrioritizedReplay(
                 max_size=self.buffer_size,
                 structure=Batch,
@@ -73,6 +85,7 @@ class DQN(BaseAgent):
 
         self.update_freq = params.get('update_freq', 1)
         self.steps = 0
+        self.updates = 0
 
     # internal compiled version of the value function
     @partial(jax.jit, static_argnums=0)
@@ -89,9 +102,9 @@ class DQN(BaseAgent):
         # if x is a tensor, jax does not handle lack of "batch" dim gracefully
         if len(x.shape) > 1:
             x = np.expand_dims(x, 0)
-            return self._values(self.net_params, x)[0]
+            return self._values(self.state.params, x)[0]
 
-        return self._values(self.net_params, x)
+        return self._values(self.state.params, x)
 
     def _loss(self, params: hk.Params, target: hk.Params, batch: Batch, weights: chex.Array):
         phi = self.phi(params, batch.x).out
@@ -109,27 +122,20 @@ class DQN(BaseAgent):
         return loss, metrics
 
     @partial(jax.jit, static_argnums=0)
-    def _computeUpdate(self, params: hk.Params, target: hk.Params, opt: Any, batch: Batch, weights: chex.Array):
-        grad, metrics = jax.grad(self._loss, has_aux=True)(params, target, batch, weights)
+    def _computeUpdate(self, state: AgentState, batch: Batch, weights: chex.Array):
+        grad_fn = jax.grad(self._loss, has_aux=True)
+        grad, metrics = grad_fn(state.params, state.target_params, batch, weights)
 
-        updates, state = self.optimizer.update(grad, opt, params)
-        params = optax.apply_updates(params, updates)
+        updates, optim = self.optimizer.update(grad, state.optim, state.params)
+        params = optax.apply_updates(state.params, updates)
 
-        return state, params, metrics
+        new_state = AgentState(
+            params=params,
+            target_params=state.target_params,
+            optim=optim,
+        )
 
-    def updateNetwork(self, batch: Batch, weights: np.ndarray):
-        # note that we need to pass in net_params, target_params, and opt_state as arguments here
-        # we only have access to a cached version of "self" within these functions due to jax.jit
-        # so we need to manually maintain the stateful portion ourselves
-        state, params, metrics = self._computeUpdate(self.net_params, self.target_params, self.opt_state, batch, weights)
-
-        self.net_params = params
-        self.opt_state = state
-
-        if self.steps % self.target_refresh == 0:
-            self.target_params = params
-
-        return metrics
+        return new_state, metrics
 
     def update(self, x, a, xp, r, gamma):
         self.steps += 1
@@ -152,11 +158,37 @@ class DQN(BaseAgent):
             return
 
         # skip updates if the buffer isn't full yet
-        if self.buffer.size() > self.batch_size:
-            batch, idxs, weights = self.buffer.sample(self.batch_size)
-            metrics = self.updateNetwork(batch, weights)
+        if self.buffer.size() <= self.batch_size:
+            return
 
-            if isinstance(self.buffer, PrioritizedReplay):
-                priorities = jax.device_get(metrics['delta'])
-                priorities = np.abs(priorities)
-                self.buffer.update_priorities(idxs, priorities)
+        self.updates += 1
+
+        batch, idxs, weights = self.buffer.sample(self.batch_size)
+        self.state, metrics = self._computeUpdate(self.state, batch, weights)
+
+        if isinstance(self.buffer, PrioritizedReplay):
+            priorities = jax.device_get(metrics['delta'])
+            priorities = np.abs(priorities)
+            self.buffer.update_priorities(idxs, priorities)
+
+        if self.updates % self.target_refresh == 0:
+            self.state.target_params = self.state.params
+
+    # -------------------
+    # -- Checkpointing --
+    # -------------------
+    def __getstate__(self):
+        state = super().__getstate__()
+        return state | {
+            'buffer': self.buffer,
+            'steps': self.steps,
+            'state': self.state,
+            'updates': self.updates,
+        }
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        self.buffer = state['buffer']
+        self.steps = state['steps']
+        self.state = state['state']
+        self.updates = state['updates']

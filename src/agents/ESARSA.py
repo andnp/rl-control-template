@@ -5,7 +5,6 @@ from PyExpUtils.utils.Collector import Collector
 
 from representations.TileCoder import SparseTileCoder
 from agents.BaseAgent import BaseAgent
-from utils.policies import createEGreedy
 
 # NOTE: this uses index-based features e.g. coming from a tile-coder
 # would need to update this to use a standard dot-product if not
@@ -42,13 +41,7 @@ class ESARSA(BaseAgent):
         })
 
         # create initial weights
-        self.w = np.zeros((actions, self.rep.features()))
-
-        # create a policy
-        self._policy = createEGreedy(lambda state: value(self.w, state), self.actions, self.epsilon, self.rng)
-
-    def policy(self, obs: np.ndarray) -> int:
-        return self._policy.selectAction(obs)
+        self.w = np.zeros((actions, self.rep.features()), dtype=np.float64)
 
     def values(self, x: np.ndarray):
         x = np.asarray(x)
@@ -59,6 +52,19 @@ class ESARSA(BaseAgent):
             xp = np.zeros_like(x)
             pi = np.zeros(self.actions)
         else:
-            pi = self._policy.probs(xp)
+            pi = self.policy(xp)
 
         _update(self.w, x, a, xp, pi, r, gamma, self.alpha)
+
+    # -------------------
+    # -- Checkpointing --
+    # -------------------
+    def __getstate__(self):
+        state = super().__getstate__()
+        return state | {
+            'w': self.w,
+        }
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        self.w = state['w']
