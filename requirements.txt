@@ -1,19 +1,20 @@
 # custom minatar with jit compiled environments
 git+ssh://git@github.com/andnp/MinAtar
 
-gym>=0.24.1
+gym[accept-rom-license,atari]>=0.24.1
+pillow
 box2d-py>=2.3.2
 numba>=0.55.0
 chex>=0.1.5
 jax>=0.2.14
 dm-haiku>=0.0.4
 optax>=0.0.8
-numpy==1.22.*
+numpy>=1.22.0
 PyFixedReps-andnp>=1.0.0
 PyExpUtils-andnp>=3.0.0
-pyrlenvs-andnp>=1.0.0
+pyrlenvs-andnp>=2.0.0
 ReplayTables-andnp>=1.0.0
-RlGlue-andnp
+RlGlue-andnp>=1.0.0
 PyExpPlotting-andnp
 
 matplotlib

@@ -1,6 +1,7 @@
 from functools import partial
 from typing import Any, Dict, Tuple
 import numpy as np
+import haiku as hk
 
 from PyExpUtils.utils.Collector import Collector
 from ReplayTables.Table import Table
@@ -32,6 +33,7 @@ class EQRC(BaseAgent):
 
         self.epsilon = params['epsilon']
         self.beta = params.get('beta', 1.)
+        self.reward_clip = params.get('reward_clip', 0)
 
         # build the value function and h network.
         # built in three parts:
@@ -39,8 +41,9 @@ class EQRC(BaseAgent):
         #  (2) features -> q
         #  (3) features -> h
         builder = NetworkBuilder(observations, self.rep_params, seed)
-        self.q = builder.addHead(lambda: hku.DuelingHeads(actions, name='q'))
-        self.h = builder.addHead(lambda: hku.DuelingHeads(actions, name='h'))
+        zero_init = hk.initializers.Constant(0)
+        self.q = builder.addHead(lambda: hku.DuelingHeads(actions, name='q', optimistic=True))
+        self.h = builder.addHead(lambda: hku.DuelingHeads(actions, name='h', w_init=zero_init, b_init=zero_init))
         self.phi = builder.getFeatureFunction()
 
         all_params = builder.getParams()
@@ -90,9 +93,12 @@ class EQRC(BaseAgent):
         # if x is a tensor, jax does not handle lack of "batch" dim gracefully
         if len(x.shape) > 1:
             x = np.expand_dims(x, 0)
-            return self._values(self.state, x)[0]
+            q = self._values(self.state, x)[0]
 
-        return self._values(self.state, x)
+        else:
+            q = self._values(self.state, x)
+
+        return jax.device_get(q)
 
     # compute the total QRC loss for both sets of parameters (value parameters and h parameters)
     def _loss(self, params, batch: Batch):
@@ -152,6 +158,9 @@ class EQRC(BaseAgent):
         # however, setting sp = nan (which is more semantically correct) causes some issues with autograd
         if gamma == 0:
             xp = np.zeros_like(x)
+
+        if self.reward_clip > 0:
+            r = np.clip(r, -self.reward_clip, self.reward_clip)
 
         # always add to the buffer
         self.buffer.addTuple((x, a, xp, r, gamma))

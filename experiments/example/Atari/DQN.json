@@ -1,0 +1,28 @@
+{
+    "agent": "DQN",
+    "problem": "Atari",
+    "total_steps": 20000000,
+    "episode_cutoff": 30000,
+    "metaParameters": {
+        "environment": {
+            "game": ["alien", "amidar", "assault", "asterix", "asteroids", "atlantis", "bank_heist", "battle_zone", "beam_rider", "berzerk", "bowling", "boxing", "breakout", "centipede", "chopper_command", "crazy_climber", "defender", "demon_attack", "double_dunk", "enduro", "fishing_derby", "freeway", "frostbite", "gopher", "gravitar", "hero", "ice_hockey", "jamesbond", "kangaroo", "krull", "kung_fu_master", "montezuma_revenge", "ms_pacman", "name_this_game", "phoenix", "pitfall", "pong", "private_eye", "qbert", "riverraid", "road_runner", "robotank", "seaquest", "skiing", "solaris", "space_invaders", "star_gunner", "surround", "tennis", "time_pilot", "tutankham", "up_n_down", "venture", "video_pinball", "wizard_of_wor", "yars_revenge", "zaxxon"]
+        },
+
+        "epsilon": 0.01,
+        "buffer_size": 200000,
+        "batch": 32,
+        "target_refresh": 40000,
+        "update_freq": 2,
+        "optimizer": {
+            "name": "ADAM",
+            "alpha": 6.103515625e-05,
+            "beta1": 0.9,
+            "beta2": 0.999
+        },
+
+        "representation": {
+            "type": "AtariNet",
+            "hidden": 512
+        }
+    }
+}

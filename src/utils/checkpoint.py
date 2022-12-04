@@ -59,10 +59,12 @@ class Checkpoint:
 
     def delete(self):
         params_path = self._ctx.resolve(self._params_path)
-        os.remove(params_path)
+        if os.path.exists(params_path):
+            os.remove(params_path)
 
         data_path = self._ctx.resolve(self._data_path)
-        os.remove(data_path)
+        if os.path.exists(data_path):
+            os.remove(data_path)
 
     def load(self):
         params_path = self._ctx.resolve(self._params_path)

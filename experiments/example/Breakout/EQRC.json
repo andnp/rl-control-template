@@ -1,10 +1,10 @@
 {
     "agent": "EQRC",
     "problem": "Breakout",
-    "total_steps": 100000,
+    "total_steps": 10000000,
     "episode_cutoff": -1,
     "metaParameters": {
-        "epsilon": 0.05,
+        "epsilon": 0.01,
         "target_refresh": 32,
         "buffer_size": 10000,
         "batch": 32,

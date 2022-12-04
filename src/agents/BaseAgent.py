@@ -1,7 +1,7 @@
 from abc import abstractmethod
 import numpy as np
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 from PyExpUtils.utils.Collector import Collector
 from PyFixedReps.BaseRepresentation import BaseRepresentation
 from ReplayTables.LagBuffer import LagBuffer, Experience
@@ -22,7 +22,7 @@ class Interaction(Experience):
     terminal: bool
 
 class BaseAgent(RlGlue.agent.BaseAgent):
-    def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
+    def __init__(self, observations: Tuple[int, ...], actions: int, params: Dict, collector: Collector, seed: int):
         self.observations = observations
         self.actions = actions
         self.params = params
@@ -35,6 +35,7 @@ class BaseAgent(RlGlue.agent.BaseAgent):
         self.gamma = params.get('gamma', 1)
         self.n_step = params.get('n_step', 1)
         self.epsilon = params.get('epsilon', 0)
+        self.reward_clip = params.get('reward_clip', 0)
         self.lag = LagBuffer(lag=self.n_step)
 
     # ----------------------
@@ -81,8 +82,10 @@ class BaseAgent(RlGlue.agent.BaseAgent):
         ))
         return a
 
-    def step(self, r: float, sp: Optional[np.ndarray]):
+    def step(self, r: float, sp: Optional[np.ndarray], extra: Dict[str, Any]):
         a = -1
+
+        # sample next action
         xp = None
         if sp is not None:
             xp = self.rep.encode(sp)
@@ -90,11 +93,18 @@ class BaseAgent(RlGlue.agent.BaseAgent):
             pi = self.policy(xp)
             a = sample(pi, rng=self.rng)
 
+        # see if the problem specified a discount term
+        gamma = extra.get('gamma', 1.0)
+
+        # possibly process the reward
+        if self.reward_clip > 0:
+            r = np.clip(r, -self.reward_clip, self.reward_clip)
+
         interaction = Interaction(
             s=xp,
             a=a,
             r=r,
-            gamma=self.gamma,
+            gamma=self.gamma * gamma,
             terminal=False,
         )
 
@@ -109,7 +119,7 @@ class BaseAgent(RlGlue.agent.BaseAgent):
 
         return a
 
-    def end(self, r: float):
+    def end(self, r: float, extra: Dict[str, Any]):
         interaction = Interaction(
             s=None,
             a=-1,

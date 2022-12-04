@@ -14,4 +14,4 @@ class Minatar(BaseEnvironment):
         r, t = self.env.act(a)
         sp = self.env.state().astype('float32')
 
-        return (r, sp, t)
+        return (r, sp, t, {})

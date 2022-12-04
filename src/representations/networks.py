@@ -62,11 +62,12 @@ class NetworkBuilder:
 
 
 def reluLayers(layers: List[int], name: Optional[str] = None):
-    init = hk.initializers.VarianceScaling(np.sqrt(2), 'fan_avg', 'uniform')
+    w_init = hk.initializers.Orthogonal(np.sqrt(2))
+    b_init = hk.initializers.Constant(0)
 
     out = []
     for width in layers:
-        out.append(hk.Linear(width, w_init=init, b_init=init, name=name))
+        out.append(hk.Linear(width, w_init=w_init, b_init=b_init, name=name))
         out.append(jax.nn.relu)
 
     return out
@@ -83,12 +84,28 @@ def buildFeatureNetwork(inputs: Tuple, params: Dict[str, Any], rng: Any):
             layers = reluLayers([hidden], name='phi')
 
         elif name == 'MinatarNet':
+            w_init = hk.initializers.Orthogonal(np.sqrt(2))
             layers = [
-                hk.Conv2D(16, 3, 2, name='phi'),
+                hk.Conv2D(16, 3, 2, w_init=w_init, name='phi'),
                 jax.nn.relu,
                 hk.Flatten(name='phi'),
             ]
             layers += reluLayers([hidden], name='phi')
+
+        elif name == 'AtariNet':
+            w_init = hk.initializers.Orthogonal(np.sqrt(2))
+            layers = [
+                lambda x: x.astype(np.float32),
+                make_conv(32, (8, 8), (4, 4)),
+                jax.nn.relu,
+                make_conv(64, (4, 4), (2, 2)),
+                jax.nn.relu,
+                make_conv(64, (3, 3), (1, 1)),
+                jax.nn.relu,
+                hk.Flatten(),
+                hk.Linear(512, w_init=w_init),
+                jax.nn.relu,
+            ]
 
         else:
             raise NotImplementedError()
@@ -101,3 +118,17 @@ def buildFeatureNetwork(inputs: Tuple, params: Dict[str, Any], rng: Any):
     net_params = network.init(rng, sample_input)
 
     return network, net_params
+
+
+def make_conv(size: int, shape: Tuple[int, int], stride: Tuple[int, int]):
+    w_init = hk.initializers.Orthogonal(np.sqrt(2))
+    b_init = hk.initializers.Constant(0)
+    return hk.Conv2D(
+        size,
+        kernel_shape=shape,
+        stride=stride,
+        w_init=w_init,
+        b_init=b_init,
+        padding='VALID',
+        name='conv',
+    )

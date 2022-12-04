@@ -2,6 +2,7 @@ from problems.Acrobot import Acrobot
 from problems.MountainCar import MountainCar
 from problems.Cartpole import Cartpole
 from problems.Breakout import Breakout
+from problems.Atari import Atari
 
 def getProblem(name):
     if name == 'MountainCar':
@@ -15,5 +16,8 @@ def getProblem(name):
 
     if name == 'Breakout':
         return Breakout
+
+    if name == 'Atari':
+        return Atari
 
     raise NotImplementedError()

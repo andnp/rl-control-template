@@ -34,6 +34,7 @@ class DuelingHeads(hk.Module):
         w_init: Optional[Init] = None,
         b_init: Optional[Init] = None,
         name: Optional[str] = None,
+        optimistic: bool = False
     ):
         super().__init__(name=name)
 
@@ -41,6 +42,9 @@ class DuelingHeads(hk.Module):
         self.output_size = output_size
         self.w_init = w_init or hk.initializers.VarianceScaling()
         self.b_init = b_init or hk.initializers.VarianceScaling()
+        if optimistic:
+            assert b_init is None, 'Cannot specify optimism and a custom bias initialization'
+            self.b_init = hk.initializers.Constant(1)
 
     def __call__(self, inputs: jnp.ndarray) -> jnp.ndarray:
         if not inputs.shape:

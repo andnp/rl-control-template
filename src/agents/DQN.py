@@ -50,6 +50,7 @@ class DQN(BaseAgent):
 
         # set up the target network parameters
         self.target_refresh = params.get('target_refresh', 1)
+        self.reward_clip = params.get('reward_clip', 0)
 
         # set up the optimizer
         self.optimizer = optax.adam(
@@ -102,9 +103,12 @@ class DQN(BaseAgent):
         # if x is a tensor, jax does not handle lack of "batch" dim gracefully
         if len(x.shape) > 1:
             x = np.expand_dims(x, 0)
-            return self._values(self.state.params, x)[0]
+            q = self._values(self.state.params, x)[0]
 
-        return self._values(self.state.params, x)
+        else:
+            q = self._values(self.state.params, x)
+
+        return jax.device_get(q)
 
     def _loss(self, params: hk.Params, target: hk.Params, batch: Batch, weights: chex.Array):
         phi = self.phi(params, batch.x).out
@@ -143,6 +147,9 @@ class DQN(BaseAgent):
         # if gamma is zero, we have a terminal state
         if gamma == 0:
             xp = np.zeros_like(x)
+
+        if self.reward_clip > 0:
+            r = np.clip(r, -self.reward_clip, self.reward_clip)
 
         # always add to the buffer
         self.buffer.add(Batch(

@@ -1,4 +1,4 @@
-import Box2D # we need to import this first because cedar is stupid
+import Box2D     # we need to import this first because cedar is stupid
 import numpy as np
 import logging
 import socket
@@ -17,7 +17,7 @@ from utils.checkpoint import Checkpoint
 # -- Library Configuration --
 # ---------------------------
 import jax
-jax.config.update('jax_platform_name', 'cpu')
+jax.config.update('jax_platform_name', 'gpu')
 
 logging.getLogger('absl').setLevel(logging.ERROR)
 logging.getLogger('filelock').setLevel(logging.ERROR)
@@ -75,9 +75,9 @@ for idx in indices:
 
     for step in range(glue.total_steps, exp.total_steps):
         chk.maybe_save()
-        _, _, _, t = glue.step()
+        interaction = glue.step()
 
-        if t or (exp.episode_cutoff > -1 and glue.num_steps >= exp.episode_cutoff):
+        if interaction.t or (exp.episode_cutoff > -1 and glue.num_steps >= exp.episode_cutoff):
             # track how many episodes are completed (cutoff is counted as termination for this count)
             chk['episode'] += 1
 
@@ -89,7 +89,7 @@ for idx in indices:
             collector.collect('episodic_return', glue.total_reward)
 
             # compute the average time-per-step in ms
-            avg_time = 1000 * (time.time() - start_time) / step
+            avg_time = 1000 * (time.time() - start_time) / (step + 1)
             fps = step / (time.time() - start_time)
 
             episode = chk['episode']
