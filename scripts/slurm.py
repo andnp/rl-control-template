@@ -8,7 +8,7 @@ import numpy as np
 import experiment.ExperimentModel as Experiment
 import PyExpUtils.runner.Slurm as Slurm
 import PyExpUtils.runner.parallel as Parallel
-from PyExpUtils.results.backends.h5 import detectMissingIndices
+from PyExpUtils.results.backends.pandas import detectMissingIndices
 from PyExpUtils.utils.generator import group
 
 if len(sys.argv) < 4:
@@ -69,7 +69,7 @@ def gatherMissing(experiment_paths, runs, groupSize, cores, total_hours):
     for path in experiment_paths:
         exp = Experiment.load(path)
 
-        indices = detectMissingIndices(exp, runs, 'step_return.h5')
+        indices = detectMissingIndices(exp, runs, 'step_return')
         indices = sorted(indices)
         out[path] = indices
 

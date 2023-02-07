@@ -9,6 +9,7 @@ sys.path.append(os.getcwd())
 
 from RlGlue import RlGlue
 from PyExpUtils.utils.Collector import Collector
+from PyExpUtils.results.backends.pandas import saveCollector
 from experiment import ExperimentModel
 from problems.registry import getProblem
 from utils.checkpoint import Checkpoint
@@ -112,8 +113,6 @@ for idx in indices:
     # ------------
     # -- Saving --
     # ------------
-
-    from PyExpUtils.results.backends.pandas import saveCollector
 
     for key in collector.keys():
         # heavily downsample the data to reduce storage costs

@@ -8,7 +8,7 @@ from functools import partial
 from multiprocessing.pool import Pool
 
 from PyExpUtils.runner import Args
-from PyExpUtils.results.backends.h5 import detectMissingIndices
+from PyExpUtils.results.backends.pandas import detectMissingIndices
 import experiment.ExperimentModel as Experiment
 
 def count(pre, it):
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     for path in args.experiment_paths:
         exp = Experiment.load(path)
 
-        indices = detectMissingIndices(exp, args.runs, 'step_return.h5')
+        indices = detectMissingIndices(exp, args.runs, 'step_return')
         indices = count(path, indices)
 
         for idx in indices:

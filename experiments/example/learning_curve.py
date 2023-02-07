@@ -36,7 +36,7 @@ if __name__ == "__main__":
         for alg in collection[env]:
             df = collection[env, alg]
 
-            best_idx = df['data'].apply(np.mean).argmin()
+            best_idx = df['data'].apply(np.mean).argmax()
             best_data = np.asarray(df.iloc[best_idx]['data'])
             print('-' * 30)
             print(alg)
