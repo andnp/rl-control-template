@@ -1,5 +1,6 @@
 # custom minatar with jit compiled environments
 git+ssh://git@github.com/andnp/MinAtar
+git+ssh://git@github.com/andnp/RlEvaluation
 
 gym[accept-rom-license,atari]>=0.24.1
 pillow

@@ -9,7 +9,7 @@ from PyExpUtils.results.Collection import ResultCollection
 from PyExpUtils.results.tools import collapseRuns
 from RlEvaluation.intervals import bootstrap
 
-from analysis.confidence_intervals import bootstrapCI
+# from analysis.confidence_intervals import bootstrapCI
 from experiment.ExperimentModel import ExperimentModel
 from experiment.tools import parseCmdLineArgs
 
@@ -40,12 +40,12 @@ if __name__ == "__main__":
                 continue
 
             best_idx = df['data'].apply(np.mean).argmax()
-            best_data = np.asarray(df.iloc[best_idx]['data'])
+            best = df.iloc[best_idx]
             print('-' * 30)
             print(alg)
-            print(df.iloc[best_idx])
+            print(best)
 
-            line = bootstrapCI(best_data, bootstraps=1000)
+            line = bootstrap(best, column='data', bootstraps=1000)
 
             lo = line[0]
             avg = line[1]

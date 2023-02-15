@@ -1,7 +1,7 @@
 {
     "agent": "DQN",
     "problem": "Breakout",
-    "total_steps": 10000000,
+    "total_steps": 250000,
     "episode_cutoff": -1,
     "metaParameters": {
         "epsilon": 0.01,

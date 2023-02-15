@@ -125,7 +125,7 @@ for idx in indices:
 
         # don't downsample episode returns
         if 'episodic' not in key:
-            collector.downsample(key, num=500, method='window')
+            collector.downsample(key, num=1000, method='window')
 
     saveCollector(exp, collector)
     chk.delete()
