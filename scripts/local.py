@@ -25,7 +25,7 @@ if __name__ == "__main__":
         print('python scripts/local.py [entry.py] [runs] [base/path/to/results] [paths/to/descriptions]...')
         exit(0)
 
-    pool = Pool(15)
+    pool = Pool(4)
 
     runs = sys.argv[2]
     args = Args.ArgsModel({

@@ -18,11 +18,12 @@ from utils.checkpoint import Checkpoint
 # -- Library Configuration --
 # ---------------------------
 import jax
-jax.config.update('jax_platform_name', 'gpu')
+jax.config.update('jax_platform_name', 'cpu')
 
 logging.getLogger('absl').setLevel(logging.ERROR)
 logging.getLogger('filelock').setLevel(logging.ERROR)
 logging.getLogger('numba').setLevel(logging.WARNING)
+logging.getLogger('jax').setLevel(logging.WARNING)
 logger = logging.getLogger('exp')
 prod = 'cdr' in socket.gethostname()
 # prod = True

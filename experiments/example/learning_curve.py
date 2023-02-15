@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from PyExpPlotting.matplot import save, setDefaultConference
 from PyExpUtils.results.Collection import ResultCollection
 from PyExpUtils.results.tools import collapseRuns
+from RlEvaluation.intervals import bootstrap
 
 from analysis.confidence_intervals import bootstrapCI
 from experiment.ExperimentModel import ExperimentModel
@@ -35,6 +36,8 @@ if __name__ == "__main__":
         f, ax = plt.subplots()
         for alg in collection[env]:
             df = collection[env, alg]
+            if df is None:
+                continue
 
             best_idx = df['data'].apply(np.mean).argmax()
             best_data = np.asarray(df.iloc[best_idx]['data'])
@@ -51,8 +54,13 @@ if __name__ == "__main__":
             ax.fill_between(range(line.shape[1]), lo, hi, color=COLORS[alg], alpha=0.2)
 
         ax.legend()
-        save(
-            save_path=f'{path}/plots',
-            plot_name=f'{env}'
-        )
-        plt.clf()
+
+        if should_save:
+            save(
+                save_path=f'{path}/plots',
+                plot_name=f'{env}'
+            )
+            plt.clf()
+        else:
+            plt.show()
+            exit()
