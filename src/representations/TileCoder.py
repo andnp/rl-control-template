@@ -1,9 +1,9 @@
-from PyFixedReps.TileCoder import TileCoder
-from PyExpUtils.utils.dict import merge
+from PyFixedReps.TileCoder import TileCoder, TileCoderConfig
 
 class SparseTileCoder(TileCoder):
-    def __init__(self, params, rng=None):
-        super().__init__(merge(params, { 'scale_output': False }), rng=rng)
+    def __init__(self, params: TileCoderConfig, rng=None):
+        params.scale_output = False
+        super().__init__(params, rng=rng)
 
     def encode(self, s, a=None):
         return super().get_indices(s, a)

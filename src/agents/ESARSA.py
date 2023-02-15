@@ -3,6 +3,7 @@ from typing import Dict, Tuple
 from numba import njit
 from PyExpUtils.utils.Collector import Collector
 
+from PyFixedReps.TileCoder import TileCoderConfig
 from representations.TileCoder import SparseTileCoder
 from agents.BaseAgent import BaseAgent
 
@@ -33,12 +34,12 @@ class ESARSA(BaseAgent):
 
         # build representation
         self.rep_params: Dict = params['representation']
-        self.rep = SparseTileCoder({
-            'dims': observations[0],
-            'tiles': self.rep_params['tiles'],
-            'tilings': self.rep_params['tilings'],
-            'input_ranges': self.rep_params['input_ranges'],
-        })
+        self.rep = SparseTileCoder(TileCoderConfig(
+            tiles=self.rep_params['tiles'],
+            tilings=self.rep_params['tilings'],
+            dims=observations[0],
+            input_ranges=self.rep_params['input_ranges']
+        ))
 
         # create initial weights
         self.w = np.zeros((actions, self.rep.features()), dtype=np.float64)
