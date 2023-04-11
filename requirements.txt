@@ -11,10 +11,10 @@ jax>=0.2.14
 dm-haiku>=0.0.4
 optax>=0.0.8
 numpy>=1.22.0
-PyFixedReps-andnp>=1.0.0
+PyFixedReps-andnp>=3.0.0
 PyExpUtils-andnp>=3.0.0
 pyrlenvs-andnp>=2.0.0
-ReplayTables-andnp>=1.0.0
+ReplayTables-andnp>=2.0.0
 RlGlue-andnp>=1.0.0
 PyExpPlotting-andnp
 
