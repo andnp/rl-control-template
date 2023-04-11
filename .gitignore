@@ -5,6 +5,7 @@ results.tar
 
 # ignore python caches
 env/
+env*/
 __pycache__
 *.pyc
 
