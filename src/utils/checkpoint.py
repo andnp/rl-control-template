@@ -2,7 +2,7 @@ import os
 import json
 import pickle
 import time
-from typing import Any, Callable, Dict, Optional, TypeVar
+from typing import Any, Callable, Dict, Optional, Sequence, Type, TypeVar, Protocol
 from experiment.ExperimentModel import ExperimentModel
 
 T = TypeVar('T')
@@ -89,4 +89,45 @@ class Checkpoint:
 
     def load_if_exists(self):
         if self._ctx.exists(self._data_path):
+            print('Found a checkpoint! Loading...')
             self.load()
+
+
+class Checkpointable(Protocol):
+    def __setstate__(self, state) -> None: ...
+    def __getstate__(self) -> Dict[str, Any]: ...
+
+C = TypeVar('C', bound=Type[Checkpointable])
+def checkpointable(props: Sequence[str]):
+    def _inner(c: C) -> C:
+        o_getter = getattr(c, '__getstate__')
+        o_setter = getattr(c, '__setstate__')
+
+        def setter(self, state):
+            if o_setter is not None:
+                o_setter(self, state)
+
+            for p in props:
+                setattr(self, p, state[p])
+
+        def getter(self):
+            out = {}
+            for p in props:
+                out[p] = getattr(self, p)
+
+            out2 = {}
+            if o_getter is not None:
+                out2 = o_getter(self)
+            elif getattr(c.__bases__[0], '__getstate__'):
+                _getter = getattr(c.__bases__[0], '__getstate__')
+                out2 = _getter(self)
+
+            out2 |= out
+            return out2
+
+        c.__getstate__ = getter
+        c.__setstate__ = setter
+
+        return c
+
+    return _inner

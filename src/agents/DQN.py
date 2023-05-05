@@ -34,6 +34,7 @@ def q_loss(q, a, r, gamma, qp):
         'delta': delta,
     }
 
+@checkpointable(('buffer', 'steps', 'state', 'updates'))
 class DQN(BaseAgent):
     def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
         super().__init__(observations, actions, params, collector, seed)
@@ -185,22 +186,3 @@ class DQN(BaseAgent):
 
         if self.updates % self.target_refresh == 0:
             self.state.target_params = self.state.params
-
-    # -------------------
-    # -- Checkpointing --
-    # -------------------
-    def __getstate__(self):
-        state = super().__getstate__()
-        return state | {
-            'buffer': self.buffer,
-            'steps': self.steps,
-            'state': self.state,
-            'updates': self.updates,
-        }
-
-    def __setstate__(self, state):
-        super().__setstate__(state)
-        self.buffer = state['buffer']
-        self.steps = state['steps']
-        self.state = state['state']
-        self.updates = state['updates']
