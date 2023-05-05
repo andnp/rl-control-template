@@ -1,11 +1,12 @@
 import numpy as np
-from typing import Dict, Tuple
-from numba import njit
-from PyExpUtils.utils.Collector import Collector
 
+from numba import njit
+from typing import Dict, Tuple
+from algorithms.BaseAgent import BaseAgent
+from utils.checkpoint import checkpointable
+from PyExpUtils.utils.Collector import Collector
 from PyFixedReps.TileCoder import TileCoderConfig
 from representations.TileCoder import SparseTileCoder
-from algorithms.BaseAgent import BaseAgent
 
 # NOTE: this uses index-based features e.g. coming from a tile-coder
 # would need to update this to use a standard dot-product if not
@@ -24,6 +25,7 @@ def _update(w, x, a, xp, pi, r, gamma, alpha):
 def value(w, x):
     return w.T[x].sum(axis=0)
 
+@checkpointable(('w', ))
 class ESARSA(BaseAgent):
     def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
         super().__init__(observations, actions, params, collector, seed)
@@ -56,16 +58,3 @@ class ESARSA(BaseAgent):
             pi = self.policy(xp)
 
         _update(self.w, x, a, xp, pi, r, gamma, self.alpha)
-
-    # -------------------
-    # -- Checkpointing --
-    # -------------------
-    def __getstate__(self):
-        state = super().__getstate__()
-        return state | {
-            'w': self.w,
-        }
-
-    def __setstate__(self, state):
-        super().__setstate__(state)
-        self.w = state['w']

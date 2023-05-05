@@ -2,6 +2,7 @@ import numpy as np
 
 from numba import njit
 from typing import Dict, Tuple
+from utils.checkpoint import checkpointable
 from PyExpUtils.utils.Collector import Collector
 from PyFixedReps.TileCoder import TileCoderConfig
 
@@ -35,6 +36,7 @@ def softmax(logits: np.ndarray, tau: float):
     den = num.sum()
     return num / den
 
+@checkpointable(('w', 'theta'))
 class AC_TC(BaseAgent):
     def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
         super().__init__(observations, actions, params, collector, seed)
@@ -68,18 +70,3 @@ class AC_TC(BaseAgent):
             pi = self.policy(xp)
 
         _update(self.w, self.theta, x, a, self.actions, xp, r, pi, gamma, self.alpha)
-
-    # -------------------
-    # -- Checkpointing --
-    # -------------------
-    def __getstate__(self):
-        state = super().__getstate__()
-        return state | {
-            'w': self.w,
-            'theta': self.theta,
-        }
-
-    def __setstate__(self, state):
-        super().__setstate__(state)
-        self.w = state['w']
-        self.theta = state['theta']

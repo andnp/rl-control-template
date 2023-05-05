@@ -1,9 +1,10 @@
 from functools import partial
 from typing import Any, Dict, Tuple
 
-from PyExpUtils.utils.Collector import Collector
 from ReplayTables.Table import Table
 from algorithms.BaseAgent import BaseAgent
+from utils.checkpoint import checkpointable
+from PyExpUtils.utils.Collector import Collector
 from representations.networks import NetworkBuilder
 from utils.jax import Batch, vmap_except, argmax_with_random_tie_breaking
 
@@ -23,6 +24,7 @@ class AgentState:
     params: Any
     optim: optax.OptState
 
+@checkpointable(('buffer', 'steps', 'state'))
 class EQRC(BaseAgent):
     def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
         super().__init__(observations, actions, params, collector, seed)
@@ -181,23 +183,6 @@ class EQRC(BaseAgent):
         self.state, metrics = self._computeUpdate(self.state, batch)
         for k, v in metrics.items():
             self.collector.collect(k, v)
-
-    # -------------------
-    # -- Checkpointing --
-    # -------------------
-    def __getstate__(self):
-        state = super().__getstate__()
-        return state | {
-            'buffer': self.buffer,
-            'steps': self.steps,
-            'state': self.state,
-        }
-
-    def __setstate__(self, state):
-        super().__setstate__(state)
-        self.buffer = state['buffer']
-        self.steps = state['steps']
-        self.state = state['state']
 
 # ---------------
 # -- Utilities --
