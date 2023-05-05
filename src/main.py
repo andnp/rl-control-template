@@ -69,7 +69,7 @@ for idx in indices:
     env = chk.build('e', problem.getEnvironment)
 
     glue = chk.build('glue', lambda: RlGlue(agent, env))
-    chk['episode'] = 0
+    chk.initial_value('episode', 0)
 
     # Run the experiment
     start_time = time.time()
