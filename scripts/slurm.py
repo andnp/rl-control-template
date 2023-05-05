@@ -4,17 +4,21 @@ import os
 sys.path.append(os.getcwd() + '/src')
 
 import math
+import argparse
 import numpy as np
 import experiment.ExperimentModel as Experiment
 import PyExpUtils.runner.Slurm as Slurm
-import PyExpUtils.runner.parallel as Parallel
 from PyExpUtils.results.backends.pandas import detectMissingIndices
 from PyExpUtils.utils.generator import group
 
-if len(sys.argv) < 4:
-    print('Please run again using')
-    print('python scripts/scriptName.py [path/to/slurm-def] [src/executable.py] [base_path] [runs] [paths/to/descriptions]...')
-    exit(0)
+parser = argparse.ArgumentParser()
+parser.add_argument('--cluster', type=str, required=True)
+parser.add_argument('--runs', type=int, required=True)
+parser.add_argument('-e', type=str, nargs='+', required=True)
+parser.add_argument('--entry', type=str, default='src/main.py')
+parser.add_argument('--results', type=str, default='./')
+
+cmdline = parser.parse_args()
 
 # -------------------------------
 # Generate scheduling bash script
@@ -36,11 +40,6 @@ export OMP_NUM_THREADS=1
 # --------------------------
 # Get command-line arguments
 # --------------------------
-slurm_path = sys.argv[1]
-executable = sys.argv[2]
-base_path = sys.argv[3]
-runs = int(sys.argv[4])
-experiment_paths = sys.argv[5:]
 
 # prints a progress bar
 def printProgress(size, it):
@@ -69,7 +68,7 @@ def gatherMissing(experiment_paths, runs, groupSize, cores, total_hours):
     for path in experiment_paths:
         exp = Experiment.load(path)
 
-        indices = detectMissingIndices(exp, runs, 'step_return')
+        indices = detectMissingIndices(exp, runs, 'steps')
         indices = sorted(indices)
         out[path] = indices
 
@@ -86,7 +85,7 @@ def gatherMissing(experiment_paths, runs, groupSize, cores, total_hours):
 # ----------------
 # Scheduling logic
 # ----------------
-slurm = Slurm.fromFile(slurm_path)
+slurm = Slurm.fromFile(cmdline.cluster)
 
 # compute how many "tasks" to clump into each job
 groupSize = slurm.cores * slurm.sequential
@@ -96,26 +95,26 @@ hours, minutes, seconds = slurm.time.split(':')
 total_hours = int(hours) + (int(minutes) / 60) + (int(seconds) / 3600)
 
 # gather missing and sum up cost
-missing, cost = gatherMissing(experiment_paths, runs, groupSize, slurm.cores, total_hours)
+missing, cost = gatherMissing(cmdline.e, cmdline.runs, groupSize, slurm.cores, total_hours)
 
 print(f"Expected to use {cost[0]:.2f} core years, which is {cost[1]:.4f}% of our annual allocation")
 input("Press Enter to confirm or ctrl+c to exit")
 
 for path in missing:
     # reload this because we do bad mutable things later on
-    slurm = Slurm.fromFile(slurm_path)
+    slurm = Slurm.fromFile(cmdline.cluster)
 
     for g in group(missing[path], groupSize):
         l = list(g)
         print("scheduling:", path, l)
 
         # build the executable string
-        runner = f'python {executable} {path} '
+        runner = f'python {cmdline.entry} -e {path} --save_path {cmdline.results} --checkpoint_path=$SCRATCH/checkpoints/experience-ordering -i '
         # generate the gnu-parallel command for dispatching to many CPUs across server nodes
-        parallel = Parallel.build({
-            'executable': runner,
-            'cores': slurm.cores,
-            'tasks': l,
+        parallel = Slurm.buildParallel(runner, l, {
+            'ntasks': slurm.cores,
+            'nodes-per-process': 1,
+            'threads-per-process': 1,
         })
 
         # generate the bash script which will be scheduled

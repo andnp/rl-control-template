@@ -3,6 +3,7 @@ import os
 sys.path.append(os.getcwd() + '/src')
 
 import random
+import argparse
 import subprocess
 from functools import partial
 from multiprocessing.pool import Pool
@@ -10,6 +11,12 @@ from multiprocessing.pool import Pool
 from PyExpUtils.runner import Args
 from PyExpUtils.results.backends.pandas import detectMissingIndices
 import experiment.ExperimentModel as Experiment
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--runs', type=int, required=True)
+parser.add_argument('-e', type=str, nargs='+', required=True)
+parser.add_argument('--entry', type=str, default='src/main.py')
+parser.add_argument('--results', type=str, default='./')
 
 def count(pre, it):
     print(pre, 0, end='\r')
@@ -20,21 +27,16 @@ def count(pre, it):
     print()
 
 if __name__ == "__main__":
-    if len(sys.argv) < 5:
-        print('Please run again using')
-        print('python scripts/local.py [entry.py] [runs] [base/path/to/results] [paths/to/descriptions]...')
-        exit(0)
+    cmdline = parser.parse_args()
 
-    pool = Pool(4)
+    pool = Pool(6)
 
-    runs = sys.argv[2]
     args = Args.ArgsModel({
-        'experiment_paths': sys.argv[4:],
-        'base_path': sys.argv[3],
-        'runs': int(runs),
-        'executable': "python " + sys.argv[1],
+        'experiment_paths': cmdline.e,
+        'base_path': cmdline.results,
+        'runs': cmdline.runs,
+        'executable': "python " + cmdline.entry,
     })
-
 
     cmds = []
     for path in args.experiment_paths:
@@ -44,7 +46,7 @@ if __name__ == "__main__":
         indices = count(path, indices)
 
         for idx in indices:
-            exe = f'{args.executable} {path} {idx}'
+            exe = f'{args.executable} --silent -e {path} -i {idx}'
             cmds.append(exe)
 
     print(len(cmds))
