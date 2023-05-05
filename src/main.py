@@ -1,18 +1,31 @@
 import Box2D     # we need to import this first because cedar is stupid
-import numpy as np
-import logging
-import socket
-import time
-import sys
 import os
+import sys
 sys.path.append(os.getcwd())
 
+import time
+import socket
+import logging
+import argparse
+import numpy as np
 from RlGlue import RlGlue
+from experiment import ExperimentModel
+from utils.checkpoint import Checkpoint
+from problems.registry import getProblem
 from PyExpUtils.utils.Collector import Collector
 from PyExpUtils.results.backends.pandas import saveCollector
-from experiment import ExperimentModel
-from problems.registry import getProblem
-from utils.checkpoint import Checkpoint
+
+# ------------------
+# -- Command Args --
+# ------------------
+parser = argparse.ArgumentParser()
+parser.add_argument('-e', '--exp', type=str, required=True)
+parser.add_argument('-i', '--idxs', nargs='+', type=int, required=True)
+parser.add_argument('--save_path', type=str, default='./')
+parser.add_argument('--checkpoint_path', type=str, default='./checkpoints/')
+parser.add_argument('--silent', action='store_true', default=False)
+
+args = parser.parse_args()
 
 # ---------------------------
 # -- Library Configuration --
@@ -25,35 +38,25 @@ logging.getLogger('filelock').setLevel(logging.ERROR)
 logging.getLogger('numba').setLevel(logging.WARNING)
 logging.getLogger('jax').setLevel(logging.WARNING)
 logger = logging.getLogger('exp')
-prod = 'cdr' in socket.gethostname()
-# prod = True
+prod = 'cdr' in socket.gethostname() or args.silent
 if not prod:
     logging.basicConfig(level=logging.DEBUG)
     logger.setLevel(logging.DEBUG)
 
-# ------------------
-# -- Command Args --
-# ------------------
-
-if len(sys.argv) < 3:
-    print('run again with:')
-    print('python3 src/main.py <path/to/description.json> <indices ...>')
-    exit(1)
 
 # ----------------------
 # -- Experiment Def'n --
 # ----------------------
 
-exp = ExperimentModel.load(sys.argv[1])
-indices = list(map(int, sys.argv[2:]))
+exp = ExperimentModel.load(args.exp)
+indices = args.idxs
 
 Problem = getProblem(exp.problem)
 for idx in indices:
-    chk = Checkpoint(exp, idx)
+    chk = Checkpoint(exp, idx, base_path=args.checkpoint_path)
     chk.load_if_exists()
 
     collector = chk.build('collector', Collector)
-
     collector.setIdx(idx)
     run = exp.getRun(idx)
 
@@ -127,5 +130,5 @@ for idx in indices:
         if 'episodic' not in key:
             collector.downsample(key, num=1000, method='window')
 
-    saveCollector(exp, collector)
+    saveCollector(exp, collector, base=args.save_path)
     chk.delete()
