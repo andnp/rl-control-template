@@ -1,11 +1,11 @@
 from functools import partial
 from typing import Any, Dict, Tuple
-import numpy as np
 
+from agents.BaseAgent import BaseAgent
+from utils.checkpoint import checkpointable
+from ReplayTables.PER import PrioritizedReplay
 from PyExpUtils.utils.Collector import Collector
 from ReplayTables.ReplayBuffer import ReplayBuffer
-from ReplayTables.PER import PrioritizedReplay
-from agents.BaseAgent import BaseAgent
 from representations.networks import NetworkBuilder
 
 import utils.chex as cxu
@@ -14,8 +14,9 @@ from utils.jax import huber_loss, Batch
 import jax
 import chex
 import optax
-import jax.numpy as jnp
+import numpy as np
 import haiku as hk
+import jax.numpy as jnp
 
 @cxu.dataclass
 class AgentState:
@@ -92,7 +93,7 @@ class DQN(BaseAgent):
 
     # internal compiled version of the value function
     @partial(jax.jit, static_argnums=0)
-    def _values(self, params: hk.Params, x: chex.Array):
+    def _values(self, params: hk.Params, x: jax.Array):
         phi = self.phi(params, x).out
         return self.q(params, phi)
 
@@ -112,7 +113,7 @@ class DQN(BaseAgent):
 
         return jax.device_get(q)
 
-    def _loss(self, params: hk.Params, target: hk.Params, batch: Batch, weights: chex.Array):
+    def _loss(self, params: hk.Params, target: hk.Params, batch: Batch, weights: jax.Array):
         phi = self.phi(params, batch.x).out
         phi_p = self.phi(target, batch.xp).out
 
@@ -128,7 +129,7 @@ class DQN(BaseAgent):
         return loss, metrics
 
     @partial(jax.jit, static_argnums=0)
-    def _computeUpdate(self, state: AgentState, batch: Batch, weights: chex.Array):
+    def _computeUpdate(self, state: AgentState, batch: Batch, weights: jax.Array):
         grad_fn = jax.grad(self._loss, has_aux=True)
         grad, metrics = grad_fn(state.params, state.target_params, batch, weights)
 

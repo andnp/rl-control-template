@@ -2,13 +2,12 @@ import numpy as np
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import jax
-import chex
 import jax.numpy as jnp
 import haiku as hk
 
 import utils.hk as hku
 
-ModuleBuilder = Callable[[], Callable[[chex.Array], chex.Array]]
+ModuleBuilder = Callable[[], Callable[[jax.Array], jax.Array]]
 
 class NetworkBuilder:
     def __init__(self, input_shape: Tuple, params: Dict[str, Any], seed: int):
@@ -29,7 +28,7 @@ class NetworkBuilder:
         return self._params
 
     def getFeatureFunction(self):
-        def _inner(params: Any, x: chex.Array):
+        def _inner(params: Any, x: jax.Array):
             return self._feat_net.apply(params['phi'], x)
 
         return _inner
@@ -38,7 +37,7 @@ class NetworkBuilder:
         assert not self._retrieved_params, 'Attempted to add head after params have been retrieved'
         _state = {}
 
-        def _builder(x: chex.Array):
+        def _builder(x: jax.Array):
             head = module()
             _state['name'] = getattr(head, 'name', None)
             out = head(x)
@@ -55,7 +54,7 @@ class NetworkBuilder:
         assert name is not None, 'Could not detect name from module'
         self._params[name] = h_params
 
-        def _inner(params: Any, x: chex.Array):
+        def _inner(params: Any, x: jax.Array):
             return h_net.apply(params[name], x)
 
         return _inner
@@ -73,7 +72,7 @@ def reluLayers(layers: List[int], name: Optional[str] = None):
     return out
 
 def buildFeatureNetwork(inputs: Tuple, params: Dict[str, Any], rng: Any):
-    def _inner(x: chex.Array):
+    def _inner(x: jax.Array):
         name = params['type']
         hidden = params['hidden']
 

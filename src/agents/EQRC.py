@@ -1,21 +1,19 @@
 from functools import partial
 from typing import Any, Dict, Tuple
-import numpy as np
-import haiku as hk
 
 from PyExpUtils.utils.Collector import Collector
 from ReplayTables.Table import Table
 from agents.BaseAgent import BaseAgent
 from representations.networks import NetworkBuilder
-
-import utils.chex as cxu
-import utils.hk as hku
 from utils.jax import Batch, vmap_except, argmax_with_random_tie_breaking
 
-import jax
-import chex
-import optax
 
+import jax
+import optax
+import numpy as np
+import haiku as hk
+import utils.hk as hku
+import utils.chex as cxu
 
 tree_leaves = jax.tree_util.tree_leaves
 tree_map = jax.tree_util.tree_map
@@ -80,7 +78,7 @@ class EQRC(BaseAgent):
     # jit'ed internal value function approximator
     # considerable speedup, especially for larger networks (note: haiku networks are not jit'ed by default)
     @partial(jax.jit, static_argnums=0)
-    def _values(self, state: AgentState, x: chex.Array):
+    def _values(self, state: AgentState, x: jax.Array):
         phi = self.phi(state.params, x).out
         return self.q(state.params, phi)
 
