@@ -5,7 +5,7 @@ from typing import Dict, Tuple
 from PyExpUtils.utils.Collector import Collector
 from PyFixedReps.TileCoder import TileCoderConfig
 
-from agents.BaseAgent import BaseAgent
+from algorithms.BaseAgent import BaseAgent
 from representations.TileCoder import SparseTileCoder
 
 @njit(cache=True)

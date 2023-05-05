@@ -3,7 +3,7 @@ from typing import Any, Dict, Tuple
 
 from PyExpUtils.utils.Collector import Collector
 from ReplayTables.Table import Table
-from agents.BaseAgent import BaseAgent
+from algorithms.BaseAgent import BaseAgent
 from representations.networks import NetworkBuilder
 from utils.jax import Batch, vmap_except, argmax_with_random_tie_breaking
 

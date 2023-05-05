@@ -5,7 +5,7 @@ from PyExpUtils.utils.Collector import Collector
 
 from PyFixedReps.TileCoder import TileCoderConfig
 from representations.TileCoder import SparseTileCoder
-from agents.BaseAgent import BaseAgent
+from algorithms.BaseAgent import BaseAgent
 
 # NOTE: this uses index-based features e.g. coming from a tile-coder
 # would need to update this to use a standard dot-product if not

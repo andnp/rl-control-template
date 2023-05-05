@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Any, Dict, Tuple
 
-from agents.BaseAgent import BaseAgent
+from algorithms.BaseAgent import BaseAgent
 from utils.checkpoint import checkpointable
 from ReplayTables.PER import PrioritizedReplay
 from PyExpUtils.utils.Collector import Collector

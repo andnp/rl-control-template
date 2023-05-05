@@ -3,8 +3,8 @@ from PyExpUtils.utils.Collector import Collector
 from RlGlue.environment import BaseEnvironment
 
 from experiment.ExperimentModel import ExperimentModel
-from agents.BaseAgent import BaseAgent
-from agents.registry import getAgent
+from algorithms.BaseAgent import BaseAgent
+from algorithms.registry import getAgent
 
 
 class BaseProblem:
