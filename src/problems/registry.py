@@ -1,23 +1,9 @@
-from problems.Acrobot import Acrobot
-from problems.MountainCar import MountainCar
-from problems.Cartpole import Cartpole
-from problems.Breakout import Breakout
-from problems.Atari import Atari
+from importlib import import_module
 
 def getProblem(name):
-    if name == 'MountainCar':
-        return MountainCar
+    if name in ['Asterix', 'Breakout', 'Freeway', 'Seaquest', 'SpaceInvaders']:
+        mod = import_module('problems.Minatar')
+    else:
+        mod = import_module(f'problems.{name}')
 
-    if name == 'Cartpole':
-        return Cartpole
-
-    if name == 'AcrobotGym':
-        return Acrobot
-
-    if name == 'Breakout':
-        return Breakout
-
-    if name == 'Atari':
-        return Atari
-
-    raise NotImplementedError()
+    return getattr(mod, name)
