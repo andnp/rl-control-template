@@ -1,0 +1,16 @@
+{
+    "agent": "AC_TC",
+    "problem": "Cartpole",
+    "total_steps": 100000,
+    "episode_cutoff": 5000,
+    "metaParameters": {
+        "alpha": [0.05],
+        "tau": [10.0],
+        "n_step": 1,
+
+        "representation": {
+            "tiles": 4,
+            "tilings": 16
+        }
+    }
+}
