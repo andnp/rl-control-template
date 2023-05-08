@@ -18,6 +18,7 @@ from experiment.tools import parseCmdLineArgs
 setDefaultConference('jmlr')
 
 COLORS = {
+    'AC_TC': 'grey',
     'EQRC': 'blue',
     'ESARSA': 'red',
     'DQN': 'black',
@@ -34,11 +35,14 @@ if __name__ == "__main__":
         print(env)
         algs = list(collection[env])
         f, ax = plt.subplots()
+
+        all_empty = True
         for alg in collection[env]:
             df = collection[env, alg]
             if df is None:
                 continue
 
+            all_empty = False
             best_idx = df['data'].apply(np.mean).argmax()
             best = df.iloc[best_idx]
             print('-' * 30)
@@ -52,6 +56,9 @@ if __name__ == "__main__":
             hi = line[2]
             ax.plot(avg, label=alg, color=COLORS[alg], linewidth=0.25)
             ax.fill_between(range(line.shape[1]), lo, hi, color=COLORS[alg], alpha=0.2)
+
+        if all_empty:
+            continue
 
         ax.legend()
 

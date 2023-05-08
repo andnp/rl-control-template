@@ -13,7 +13,7 @@ from experiment import ExperimentModel
 from utils.checkpoint import Checkpoint
 from problems.registry import getProblem
 from PyExpUtils.utils.Collector import Collector
-from PyExpUtils.results.backends.pandas import saveCollector
+from PyExpUtils.results.pandas import saveCollector
 
 # ------------------
 # -- Command Args --

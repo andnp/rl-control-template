@@ -8,8 +8,7 @@ import subprocess
 from functools import partial
 from multiprocessing.pool import Pool
 
-from PyExpUtils.runner import Args
-from PyExpUtils.results.backends.pandas import detectMissingIndices
+from PyExpUtils.runner.utils import gather_missing_indices
 import experiment.ExperimentModel as Experiment
 
 parser = argparse.ArgumentParser()
@@ -31,22 +30,14 @@ if __name__ == "__main__":
 
     pool = Pool(6)
 
-    args = Args.ArgsModel({
-        'experiment_paths': cmdline.e,
-        'base_path': cmdline.results,
-        'runs': cmdline.runs,
-        'executable': "python " + cmdline.entry,
-    })
-
     cmds = []
-    for path in args.experiment_paths:
+    e_to_missing = gather_missing_indices(cmdline.e, cmdline.runs, 'step_return', loader=Experiment.load)
+    for path in cmdline.e:
         exp = Experiment.load(path)
 
-        indices = detectMissingIndices(exp, args.runs, 'step_return')
-        indices = count(path, indices)
-
+        indices = count(path, e_to_missing[path])
         for idx in indices:
-            exe = f'{args.executable} --silent -e {path} -i {idx}'
+            exe = f'python {cmdline.entry} --silent -e {path} -i {idx}'
             cmds.append(exe)
 
     print(len(cmds))

@@ -1,6 +1,6 @@
 {
     "agent": "ESARSA",
-    "problem": "AcrobotGym",
+    "problem": "Acrobot",
     "total_steps": 100000,
     "episode_cutoff": -1,
     "metaParameters": {
