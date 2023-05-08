@@ -29,7 +29,7 @@ class BaseAgent(RlGlue.agent.BaseAgent):
         self.collector = collector
 
         self.seed = seed
-        self.rng = np.random.RandomState(seed)
+        self.rng = np.random.default_rng(seed)
         self.rep = IdentityRep()
 
         self.gamma = params.get('gamma', 1)

@@ -78,13 +78,13 @@ class DQN(BaseAgent):
             self.buffer = PrioritizedReplay(
                 max_size=self.buffer_size,
                 structure=Batch,
-                rng=np.random.RandomState(seed),
+                rng=np.random.default_rng(seed),
             )
         else:
             self.buffer = ReplayBuffer(
                 max_size=self.buffer_size,
                 structure=Batch,
-                rng=np.random.RandomState(seed),
+                rng=np.random.default_rng(seed),
             )
 
         self.update_freq = params.get('update_freq', 1)

@@ -6,25 +6,25 @@ from PyExpUtils.utils.random import sample
 from PyExpUtils.utils.arrays import argsmax
 
 class Policy:
-    def __init__(self, probs: Callable[[Any], NpList], rng: np.random.RandomState):
+    def __init__(self, probs: Callable[[Any], NpList], rng: np.random.Generator):
         self.probs = probs
         self.random = rng
 
     def selectAction(self, s: Any):
         action_probabilities = self.probs(s)
-        return sample(action_probabilities, rng=self.random)
+        return sample(np.asarray(action_probabilities), rng=self.random)
 
     def ratio(self, other: Any, s: Any, a: int) -> float:
         probs = self.probs(s)
         return probs[a] / other.probs(s)[a]
 
-def fromStateArray(probs: Sequence[NpList], rng: np.random.RandomState):
+def fromStateArray(probs: Sequence[NpList], rng: np.random.Generator):
     return Policy(lambda s: probs[s], rng)
 
-def fromActionArray(probs: NpList, rng: np.random.RandomState):
+def fromActionArray(probs: NpList, rng: np.random.Generator):
     return Policy(lambda s: probs, rng)
 
-def createEGreedy(get_values: Callable[[Any], np.ndarray], actions: int, epsilon: float, rng: np.random.RandomState):
+def createEGreedy(get_values: Callable[[Any], np.ndarray], actions: int, epsilon: float, rng: np.random.Generator):
     probs = lambda state: egreedy_probabilities(get_values(state), actions, epsilon)
 
     return Policy(probs, rng)
