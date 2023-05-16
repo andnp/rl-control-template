@@ -1,7 +1,8 @@
 import os
 import json
-import pickle
 import time
+import shutil
+import pickle
 from typing import Any, Callable, Dict, Optional, Sequence, Type, TypeVar, Protocol
 from experiment.ExperimentModel import ExperimentModel
 
@@ -20,6 +21,7 @@ class Checkpoint:
         self._ctx = self._exp.buildSaveContext(idx, base=base_path)
 
         self._params = exp.getPermutation(idx)
+        self._base_path = f'{idx}'
         self._params_path = f'{idx}/params.json'
         self._data_path = f'{idx}/chk.pkl'
 
@@ -65,13 +67,9 @@ class Checkpoint:
             self._last_save = time.time()
 
     def delete(self):
-        params_path = self._ctx.resolve(self._params_path)
-        if os.path.exists(params_path):
-            os.remove(params_path)
-
-        data_path = self._ctx.resolve(self._data_path)
-        if os.path.exists(data_path):
-            os.remove(data_path)
+        base_path = self._ctx.resolve(self._base_path)
+        if os.path.exists(base_path):
+            shutil.rmtree(base_path)
 
     def load(self):
         params_path = self._ctx.resolve(self._params_path)

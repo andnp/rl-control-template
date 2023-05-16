@@ -12,8 +12,8 @@ from RlGlue import RlGlue
 from experiment import ExperimentModel
 from utils.checkpoint import Checkpoint
 from problems.registry import getProblem
-from PyExpUtils.utils.Collector import Collector
 from PyExpUtils.results.pandas import saveCollector
+from PyExpUtils.utils.Collector import Collector, Ignore, Window, Subsample
 
 # ------------------
 # -- Command Args --
@@ -56,7 +56,19 @@ for idx in indices:
     chk = Checkpoint(exp, idx, base_path=args.checkpoint_path)
     chk.load_if_exists()
 
-    collector = chk.build('collector', Collector)
+    collector = chk.build('collector', lambda: Collector(
+        # specify which keys to actually store and ultimately save
+        # Options are:
+        #  - Identity() (save everything)
+        #  - Window(n)  take a window average of size n
+        #  - Subsample(n) save one of every n elements
+        config={
+            'step_return': Window(100),
+            'episodic_return': Subsample(10),
+        },
+        # by default, ignore keys that are not explicitly listed above
+        default=Ignore(),
+    ))
     collector.setIdx(idx)
     run = exp.getRun(idx)
 
@@ -90,7 +102,7 @@ for idx in indices:
             agent.cleanup()
 
             # collect some data
-            collector.concat('step_return', [glue.total_reward] * glue.num_steps)
+            collector.repeat('step_return', glue.total_reward, glue.num_steps)
             collector.collect('episodic_return', glue.total_reward)
 
             # compute the average time-per-step in ms
@@ -111,24 +123,9 @@ for idx in indices:
         # also track the reward per episode (this may not have the same length for all agents!)
         collector.collect('episodic_return', glue.total_reward)
 
-    # force the data to always have same length
-    collector.fillRest('step_return', exp.total_steps)
-
+    collector.reset()
     # ------------
     # -- Saving --
     # ------------
-
-    for key in collector.keys():
-        # heavily downsample the data to reduce storage costs
-        # we don't need all of the data-points for plotting anyways
-        # method='window' returns a window average
-        # method='subsample' returns evenly spaced samples from array
-        # num=1000 makes sure final array is of length 1000
-        # percent=0.1 makes sure final array is 10% of the original length (only one of `num` or `percent` can be specified)
-
-        # don't downsample episode returns
-        if 'episodic' not in key:
-            collector.downsample(key, num=1000, method='window')
-
     saveCollector(exp, collector, base=args.save_path)
     chk.delete()
