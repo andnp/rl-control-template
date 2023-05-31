@@ -5,5 +5,5 @@ class SparseTileCoder(TileCoder):
         params.scale_output = False
         super().__init__(params, rng=rng)
 
-    def encode(self, s, a=None):
-        return super().get_indices(s, a)
+    def encode(self, s):
+        return super().get_indices(s)

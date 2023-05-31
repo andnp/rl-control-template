@@ -1,6 +1,5 @@
 # custom minatar with jit compiled environments
 git+ssh://git@github.com/andnp/MinAtar
-git+ssh://git@github.com/andnp/RlEvaluation
 
 gym[accept-rom-license,atari]>=0.24.1
 pillow
@@ -17,6 +16,7 @@ pyrlenvs-andnp>=2.0.0
 ReplayTables-andnp>=3.0.0
 RlGlue-andnp>=1.0.0
 PyExpPlotting-andnp
+RlEvaluation
 
 matplotlib
 flake8
