@@ -2,12 +2,13 @@ import os
 import sys
 sys.path.append(os.getcwd() + '/src')
 
-import numpy as np
 import matplotlib.pyplot as plt
 from PyExpPlotting.matplot import save, setDefaultConference
 from PyExpUtils.results.Collection import ResultCollection
-from PyExpUtils.results.tools import collapseRuns
-from RlEvaluation.intervals import bootstrap
+
+import RlEvaluation.temporal as temporal
+from RlEvaluation.ResultData import ResultData, Metric
+from RlEvaluation.hypers import Preference
 
 # from analysis.confidence_intervals import bootstrapCI
 from experiment.ExperimentModel import ExperimentModel
@@ -28,8 +29,10 @@ COLORS = {
 if __name__ == "__main__":
     path, should_save, save_type = parseCmdLineArgs()
 
-    collection = ResultCollection.fromExperiments('step_return', Model=ExperimentModel)
-    collection.apply(collapseRuns)
+    collection = ResultCollection.fromExperiments(
+        metrics=('step_return',),
+        Model=ExperimentModel,
+    )
 
     for env in collection.keys():
         print(env)
@@ -42,14 +45,16 @@ if __name__ == "__main__":
             if df is None:
                 continue
 
-            all_empty = False
-            best_idx = df['data'].apply(np.mean).argmax()
-            best = df.iloc[best_idx]
-            print('-' * 30)
-            print(alg)
-            print(best)
+            res = ResultData(
+                data=df,
+                config={
+                    'step_return': Metric(time_summary=temporal.mean, preference=Preference.high),
+                },
+            )
 
-            line = bootstrap(best, column='data', bootstraps=1000)
+            all_empty = False
+            best_idx = res.get_best_hyper_idx('step_return')
+            line = res.get_learning_curve('step_return', best_idx)
 
             lo = line[0]
             avg = line[1]

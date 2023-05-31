@@ -119,11 +119,12 @@ for idx in indices:
     if len(collector.get('step_return', idx)) == 0:
         # collect an array of rewards that is the length of the number of steps in episode
         # effectively we count the whole episode as having received the same final reward
-        collector.concat('step_return', [glue.total_reward] * glue.num_steps)
+        collector.repeat('step_return', glue.total_reward, glue.num_steps)
         # also track the reward per episode (this may not have the same length for all agents!)
         collector.collect('episodic_return', glue.total_reward)
 
     collector.reset()
+    collector.fillRest('step_return', int(exp.total_steps / 100))
     # ------------
     # -- Saving --
     # ------------
