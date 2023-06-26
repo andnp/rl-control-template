@@ -11,6 +11,7 @@ import numpy as np
 from RlGlue import RlGlue
 from experiment import ExperimentModel
 from utils.checkpoint import Checkpoint
+from utils.preempt import TimeoutHandler
 from problems.registry import getProblem
 from PyExpUtils.results.pandas import saveCollector
 from PyExpUtils.utils.Collector import Collector, Ignore, Window, Subsample
@@ -47,6 +48,7 @@ if not prod:
 # ----------------------
 # -- Experiment Def'n --
 # ----------------------
+timeout_handler = TimeoutHandler()
 
 exp = ExperimentModel.load(args.exp)
 indices = args.idxs
@@ -55,6 +57,7 @@ Problem = getProblem(exp.problem)
 for idx in indices:
     chk = Checkpoint(exp, idx, base_path=args.checkpoint_path)
     chk.load_if_exists()
+    timeout_handler.before_cancel(chk.save)
 
     collector = chk.build('collector', lambda: Collector(
         # specify which keys to actually store and ultimately save

@@ -10,7 +10,7 @@ T = TypeVar('T')
 Builder = Callable[[], T]
 
 class Checkpoint:
-    def __init__(self, exp: ExperimentModel, idx: int, base_path: str = './', save_every: float = 14.9) -> None:
+    def __init__(self, exp: ExperimentModel, idx: int, base_path: str = './', save_every: float = 89) -> None:
         self._storage: Dict[str, Any] = {}
         self._exp = exp
         self._idx = idx

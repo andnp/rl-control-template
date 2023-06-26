@@ -27,12 +27,15 @@ ANNUAL_ALLOCATION = 724
 # -------------------------------
 # Generate scheduling bash script
 # -------------------------------
+cwd = os.getcwd()
 
 # the contents of the string below will be the bash script that is scheduled on compute canada
 # change the script accordingly (e.g. add the necessary `module load X` commands)
-cwd = os.getcwd()
 def getJobScript(parallel):
     return f"""#!/bin/bash
+
+#SBATCH --signal=B:SIGUSR1@120
+
 cd {cwd}
 . ~/env/bin/activate
 
