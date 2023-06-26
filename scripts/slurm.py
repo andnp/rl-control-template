@@ -31,7 +31,7 @@ cwd = os.getcwd()
 project_name = os.path.basename(cwd)
 
 venv_origin = f'{cwd}/venv.tar.xz'
-venv = f'$SLURM_TMPDIR/{project_name}'
+venv = '$SLURM_TMPDIR'
 
 # the contents of the string below will be the bash script that is scheduled on compute canada
 # change the script accordingly (e.g. add the necessary `module load X` commands)
@@ -41,10 +41,7 @@ def getJobScript(parallel):
 #SBATCH --signal=B:SIGUSR1@120
 
 cd {cwd}
-
-mkdir {venv}
-cp {venv_origin} {venv}/venv.tar.xz
-srun --ntasks=$SLURM_NNODES --ntasks-per-node=1 tar -xf {venv}/venv.tar.xz -C {venv}
+srun --ntasks=$SLURM_NNODES --ntasks-per-node=1 tar -xf {venv_origin} -C {venv}
 
 export MPLBACKEND=TKAgg
 export OMP_NUM_THREADS=1
