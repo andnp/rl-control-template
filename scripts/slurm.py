@@ -42,7 +42,8 @@ def getJobScript(parallel):
 
 cd {cwd}
 
-cp {venv_origin} {venv}
+mkdir {venv}
+cp {venv_origin} {venv}/venv.tar.xz
 srun --ntasks=$SLURM_NNODES --ntasks-per-node=1 tar -xf {venv}/venv.tar.xz -C {venv}
 
 export MPLBACKEND=TKAgg
