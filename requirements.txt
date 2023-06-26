@@ -1,7 +1,7 @@
 # custom minatar with jit compiled environments
 git+ssh://git@github.com/andnp/MinAtar
 
-gym[accept-rom-license,atari]>=0.24.1
+gymnasium[accept-rom-license,atari]>=0.24.1
 pillow
 box2d-py>=2.3.2
 numba>=0.55.0
