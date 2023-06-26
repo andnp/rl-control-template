@@ -40,6 +40,15 @@ def getJobScript(parallel):
 
 #SBATCH --signal=B:SIGUSR1@120
 
+function sig_handler()
+{{
+    echo "forwarding SIGUSR1"
+    srun --ntasks=$SLURM_NNODES --ntasks-per-node=1 killall -USR1 python
+}}
+
+trap 'sig_handler' SIGUSR1
+
+
 cd {cwd}
 srun --ntasks=$SLURM_NNODES --ntasks-per-node=1 tar -xf {venv_origin} -C {venv}
 
