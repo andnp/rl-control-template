@@ -36,6 +36,9 @@ class BaseProblem:
         return self.env
 
     def getAgent(self):
+        if self.agent is not None:
+            return self.agent
+
         if self.gamma is not None:
             self.params['gamma'] = self.gamma
 
