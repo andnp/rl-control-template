@@ -28,6 +28,10 @@ ANNUAL_ALLOCATION = 724
 # Generate scheduling bash script
 # -------------------------------
 cwd = os.getcwd()
+project_name = os.path.basename(cwd)
+
+venv_origin = f'{cwd}/venv.tar.xz'
+venv = f'$SLURM_TMPDIR/{project_name}'
 
 # the contents of the string below will be the bash script that is scheduled on compute canada
 # change the script accordingly (e.g. add the necessary `module load X` commands)
@@ -37,12 +41,24 @@ def getJobScript(parallel):
 #SBATCH --signal=B:SIGUSR1@120
 
 cd {cwd}
-. ~/env/bin/activate
+
+cp {venv_origin} {venv}
+srun --ntasks=$SLURM_NNODES --ntasks-per-node=1 tar -xf {venv}/venv.tar.xz -C {venv}
 
 export MPLBACKEND=TKAgg
 export OMP_NUM_THREADS=1
 {parallel}
     """
+
+# -----------------
+# Environment check
+# -----------------
+if not os.path.exists(venv_origin):
+    print("WARNING: zipped virtual environment not found at:", venv_origin)
+    print("Trying to make one now")
+    code = os.system('tar -caf venv.tar.xz .venv')
+    if code:
+        raise Exception("Failed to make virtual env")
 
 # ----------------
 # Scheduling logic
@@ -78,7 +94,8 @@ for path in missing:
         sub = dataclasses.replace(slurm, cores=cores)
 
         # build the executable string
-        runner = f'python {cmdline.entry} -e {path} --save_path {cmdline.results} --checkpoint_path=$SCRATCH/checkpoints/experience-ordering -i '
+        # instead of activating the venv every time, just use its python directly
+        runner = f'{venv}/.venv/bin/python {cmdline.entry} -e {path} --save_path {cmdline.results} --checkpoint_path=$SCRATCH/checkpoints/{project_name} -i '
 
         # generate the gnu-parallel command for dispatching to many CPUs across server nodes
         parallel = Slurm.buildParallel(runner, l, sub)
