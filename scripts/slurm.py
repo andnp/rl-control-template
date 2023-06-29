@@ -54,7 +54,9 @@ srun --ntasks=$SLURM_NNODES --ntasks-per-node=1 tar -xf {venv_origin} -C {venv}
 
 export MPLBACKEND=TKAgg
 export OMP_NUM_THREADS=1
-{parallel}
+{parallel} &
+
+wait
     """
 
 # -----------------
