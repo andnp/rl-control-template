@@ -1,21 +1,22 @@
-from typing import Callable, Dict, Optional, Sequence
-import jax.numpy as jnp
+import jax
 import haiku as hk
-import chex
-from utils.chex import dataclass
+import jax.numpy as jnp
+import utils.chex as cxu
+
+from typing import Callable, Dict, Optional, Sequence
 
 Init = hk.initializers.Initializer
-Layer = Callable[[chex.Array], chex.Array]
+Layer = Callable[[jax.Array], jax.Array]
 
 
-@dataclass
+@cxu.dataclass
 class AccumulatedOutput:
-    activations: Dict[str, chex.Array]
-    out: chex.Array
+    activations: Dict[str, jax.Array]
+    out: jax.Array
 
 def accumulatingSequence(fs: Sequence[Layer]):
-    def _inner(x: chex.Array):
-        out: Dict[str, chex.Array] = {}
+    def _inner(x: jax.Array):
+        out: Dict[str, jax.Array] = {}
 
         y = x
         for f in fs:
@@ -46,7 +47,7 @@ class DuelingHeads(hk.Module):
             assert b_init is None, 'Cannot specify optimism and a custom bias initialization'
             self.b_init = hk.initializers.Constant(1)
 
-    def __call__(self, inputs: jnp.ndarray) -> jnp.ndarray:
+    def __call__(self, inputs: jax.Array) -> jax.Array:
         if not inputs.shape:
             raise ValueError('Input must not be scalar.')
 
