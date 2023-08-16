@@ -1,8 +1,8 @@
 {
-    "agent": "AC_TC",
-    "problem": "Acrobot",
+    "agent": "SoftmaxAC",
+    "problem": "MountainCar",
     "total_steps": 100000,
-    "episode_cutoff": -1,
+    "episode_cutoff": 5000,
     "metaParameters": {
         "alpha": [0.05],
         "tau": [10.0],

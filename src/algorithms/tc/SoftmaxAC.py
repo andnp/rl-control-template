@@ -4,10 +4,8 @@ from numba import njit
 from typing import Dict, Tuple
 from utils.checkpoint import checkpointable
 from PyExpUtils.utils.Collector import Collector
-from PyFixedReps.TileCoder import TileCoderConfig
 
-from algorithms.BaseAgent import BaseAgent
-from representations.TileCoder import SparseTileCoder
+from algorithms.tc.TCAgent import TCAgent
 
 @njit(cache=True)
 def _update(w, theta, x, a, n_a, xp, r, pi, gamma, alpha):
@@ -37,22 +35,13 @@ def softmax(logits: np.ndarray, tau: float):
     return num / den
 
 @checkpointable(('w', 'theta'))
-class AC_TC(BaseAgent):
+class SoftmaxAC(TCAgent):
     def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
         super().__init__(observations, actions, params, collector, seed)
 
         # define parameter contract
         self.alpha = params['alpha']
         self.tau = params['tau']
-
-        # build representation
-        self.rep_params: Dict = params['representation']
-        self.rep = SparseTileCoder(TileCoderConfig(
-            tiles=self.rep_params['tiles'],
-            tilings=self.rep_params['tilings'],
-            dims=observations[0],
-            input_ranges=self.rep_params['input_ranges']
-        ))
 
         # create initial weights
         self.w = np.zeros((self.rep.features()), dtype=np.float32)

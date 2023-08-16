@@ -2,11 +2,11 @@ import numpy as np
 
 from numba import njit
 from typing import Dict, Tuple
-from algorithms.BaseAgent import BaseAgent
-from utils.checkpoint import checkpointable
 from PyExpUtils.utils.Collector import Collector
-from PyFixedReps.TileCoder import TileCoderConfig
-from representations.TileCoder import SparseTileCoder
+
+from algorithms.tc.TCAgent import TCAgent
+from utils.checkpoint import checkpointable
+from utils.policies import egreedy_probabilities
 
 # NOTE: this uses index-based features e.g. coming from a tile-coder
 # would need to update this to use a standard dot-product if not
@@ -26,7 +26,7 @@ def value(w, x):
     return w.T[x].sum(axis=0)
 
 @checkpointable(('w', ))
-class ESARSA(BaseAgent):
+class ESARSA(TCAgent):
     def __init__(self, observations: Tuple, actions: int, params: Dict, collector: Collector, seed: int):
         super().__init__(observations, actions, params, collector, seed)
 
@@ -34,17 +34,12 @@ class ESARSA(BaseAgent):
         self.alpha = params['alpha']
         self.epsilon = params['epsilon']
 
-        # build representation
-        self.rep_params: Dict = params['representation']
-        self.rep = SparseTileCoder(TileCoderConfig(
-            tiles=self.rep_params['tiles'],
-            tilings=self.rep_params['tilings'],
-            dims=observations[0],
-            input_ranges=self.rep_params['input_ranges']
-        ))
-
         # create initial weights
         self.w = np.zeros((actions, self.rep.features()), dtype=np.float64)
+
+    def policy(self, obs: np.ndarray) -> np.ndarray:
+        qs = self.values(obs)
+        return egreedy_probabilities(qs, self.actions, self.epsilon)
 
     def values(self, x: np.ndarray):
         x = np.asarray(x)

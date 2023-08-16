@@ -8,6 +8,7 @@
         "target_refresh": 128,
         "buffer_size": 4000,
         "batch": 32,
+        "use_per": true,
         "n_step": 3,
 
         "optimizer": {

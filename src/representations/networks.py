@@ -7,7 +7,7 @@ import haiku as hk
 
 import utils.hk as hku
 
-ModuleBuilder = Callable[[], Callable[[jax.Array], jax.Array]]
+ModuleBuilder = Callable[[], Callable[[jax.Array | np.ndarray], jax.Array]]
 
 class NetworkBuilder:
     def __init__(self, input_shape: Tuple, params: Dict[str, Any], seed: int):
@@ -28,7 +28,7 @@ class NetworkBuilder:
         return self._params
 
     def getFeatureFunction(self):
-        def _inner(params: Any, x: jax.Array):
+        def _inner(params: Any, x: jax.Array | np.ndarray):
             return self._feat_net.apply(params['phi'], x)
 
         return _inner
@@ -37,7 +37,7 @@ class NetworkBuilder:
         assert not self._retrieved_params, 'Attempted to add head after params have been retrieved'
         _state = {}
 
-        def _builder(x: jax.Array):
+        def _builder(x: jax.Array | np.ndarray):
             head = module()
             _state['name'] = getattr(head, 'name', None)
             out = head(x)
