@@ -1,15 +1,14 @@
 from functools import partial
 from typing import Any, Dict, Tuple
+from ReplayTables.PER import PrioritizedReplay
+from ReplayTables.ReplayBuffer import ReplayBuffer
+from PyExpUtils.utils.Collector import Collector
 
 from algorithms.BaseAgent import BaseAgent
-from utils.checkpoint import checkpointable
-from ReplayTables.PER import PrioritizedReplay
-from PyExpUtils.utils.Collector import Collector
-from ReplayTables.ReplayBuffer import ReplayBuffer
 from representations.networks import NetworkBuilder
-
-import utils.chex as cxu
+from utils.checkpoint import checkpointable
 from utils.jax import huber_loss, Batch
+from utils.policies import sample
 
 import jax
 import chex
@@ -17,6 +16,7 @@ import optax
 import numpy as np
 import haiku as hk
 import jax.numpy as jnp
+import utils.chex as cxu
 
 @cxu.dataclass
 class AgentState:
