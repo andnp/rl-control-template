@@ -3,6 +3,7 @@ import json
 import time
 import shutil
 import pickle
+import logging
 from typing import Any, Callable, Dict, Optional, Sequence, Type, TypeVar, Protocol
 from experiment.ExperimentModel import ExperimentModel
 
@@ -10,7 +11,7 @@ T = TypeVar('T')
 Builder = Callable[[], T]
 
 class Checkpoint:
-    def __init__(self, exp: ExperimentModel, idx: int, base_path: str = './', save_every: float = 89) -> None:
+    def __init__(self, exp: ExperimentModel, idx: int, base_path: str = './', save_every: float = -1) -> None:
         self._storage: Dict[str, Any] = {}
         self._exp = exp
         self._idx = idx
@@ -49,6 +50,7 @@ class Checkpoint:
     def save(self):
         params_path = self._ctx.resolve(self._params_path)
 
+        logging.info('Dumping checkpoint')
         if not os.path.exists(params_path):
             params_path = self._ctx.ensureExists(self._params_path, is_file=True)
             with open(params_path, 'w') as f:
@@ -58,7 +60,12 @@ class Checkpoint:
         with open(data_path, 'wb') as f:
             pickle.dump(self._storage, f)
 
+        logging.info('Finished dumping checkpoint')
+
     def maybe_save(self):
+        if self._save_every < 0:
+            return
+
         if self._last_save is None:
             self._last_save = time.time()
 

@@ -12,12 +12,24 @@ Callback = Callable[[], Any]
 class TimeoutHandler:
     def __init__(self):
         self._todos: List[Callback] = []
-        signal.signal(signal.SIGUSR1, self._handler)
+        self._times_received = 0
+        signal.signal(signal.SIGTERM, self._handler)
 
     def before_cancel(self, todo: Callback):
         self._todos.append(todo)
 
     def _handler(self, sig, frame):
-        logging.info('Received preemption signal.')
+        self._times_received += 1
+        logging.info(f'Received preemption signal. Times: {self._times_received}')
+
+        if self._times_received > 1:
+            exit(130)
+
         for todo in self._todos:
-            todo()
+            try:
+                todo()
+            except Exception as e:
+                print(e)
+
+        logging.info('Exiting gracefully now')
+        exit()

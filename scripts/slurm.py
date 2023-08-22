@@ -38,25 +38,14 @@ venv = '$SLURM_TMPDIR'
 def getJobScript(parallel):
     return f"""#!/bin/bash
 
-#SBATCH --signal=B:SIGUSR1@120
-
-function sig_handler()
-{{
-    echo "forwarding SIGUSR1"
-    srun --ntasks=$SLURM_NNODES --ntasks-per-node=1 killall -USR1 python
-}}
-
-trap 'sig_handler' SIGUSR1
-
+#SBATCH --signal=B:SIGTERM@180
 
 cd {cwd}
 srun --ntasks=$SLURM_NNODES --ntasks-per-node=1 tar -xf {venv_origin} -C {venv}
 
 export MPLBACKEND=TKAgg
 export OMP_NUM_THREADS=1
-{parallel} &
-
-wait
+{parallel}
     """
 
 # -----------------
