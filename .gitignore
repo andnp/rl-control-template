@@ -9,6 +9,10 @@ env/
 __pycache__
 *.pyc
 
+.pdm-python
+pdm.lock
+pyproject.toml
+
 # ignore test experiments
 test.json
 
