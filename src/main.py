@@ -25,6 +25,7 @@ parser.add_argument('-i', '--idxs', nargs='+', type=int, required=True)
 parser.add_argument('--save_path', type=str, default='./')
 parser.add_argument('--checkpoint_path', type=str, default='./checkpoints/')
 parser.add_argument('--silent', action='store_true', default=False)
+parser.add_argument('--gpu', action='store_true', default=False)
 
 args = parser.parse_args()
 
@@ -32,7 +33,8 @@ args = parser.parse_args()
 # -- Library Configuration --
 # ---------------------------
 import jax
-jax.config.update('jax_platform_name', 'cpu')
+device = 'gpu' if args.gpu else 'cpu'
+jax.config.update('jax_platform_name', device)
 
 logging.getLogger('absl').setLevel(logging.ERROR)
 logging.getLogger('filelock').setLevel(logging.ERROR)
