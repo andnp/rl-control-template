@@ -71,7 +71,7 @@ hours, minutes, seconds = slurm.time.split(':')
 total_hours = int(hours) + (int(minutes) / 60) + (int(seconds) / 3600)
 
 # gather missing
-missing = gather_missing_indices(cmdline.e, cmdline.runs, result_file='steps', loader=Experiment.load)
+missing = gather_missing_indices(cmdline.e, cmdline.runs, loader=Experiment.load)
 
 # compute cost
 memory = Slurm.memory_in_mb(slurm.mem_per_core)

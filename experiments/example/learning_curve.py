@@ -2,13 +2,19 @@ import os
 import sys
 sys.path.append(os.getcwd() + '/src')
 
+import numpy as np
 import matplotlib.pyplot as plt
 from PyExpPlotting.matplot import save, setDefaultConference
 from PyExpUtils.results.Collection import ResultCollection
 
-import RlEvaluation.temporal as temporal
-from RlEvaluation.ResultData import ResultData, Metric
-from RlEvaluation.hypers import Preference
+from RlEvaluation.config import data_definition
+from RlEvaluation.interpolation import compute_step_return
+from RlEvaluation.temporal import TimeSummary, extract_learning_curves, curve_percentile_bootstrap_ci
+from RlEvaluation.statistics import Statistic
+from RlEvaluation.utils.pandas import split_over_column
+
+import RlEvaluation.hypers as Hypers
+import RlEvaluation.metrics as Metrics
 
 # from analysis.confidence_intervals import bootstrapCI
 from experiment.ExperimentModel import ExperimentModel
@@ -19,54 +25,87 @@ from experiment.tools import parseCmdLineArgs
 setDefaultConference('jmlr')
 
 COLORS = {
-    'AC_TC': 'grey',
+    'SoftmaxAC': 'grey',
     'EQRC': 'blue',
     'ESARSA': 'red',
     'DQN': 'black',
     'PrioritizedDQN': 'purple',
 }
 
+# keep 1 in every SUBSAMPLE measurements
+SUBSAMPLE = 100
+
 if __name__ == "__main__":
     path, should_save, save_type = parseCmdLineArgs()
 
-    collection = ResultCollection.fromExperiments(
-        metrics=('step_return',),
-        Model=ExperimentModel,
+    results = ResultCollection.fromExperiments(Model=ExperimentModel)
+
+    data_definition(
+        hyper_cols=results.get_hyperparameter_columns(),
+        seed_col='seed',
+        time_col='frame',
+        environment_col='environment',
+        algorithm_col='algorithm',
+
+        # makes this data definition globally accessible
+        # so we don't need to supply it to all API calls
+        make_global=True,
     )
 
-    for env in collection.keys():
-        print(env)
-        algs = list(collection[env])
+    df = results.combine(
+        # converts path like "experiments/example/MountainCar"
+        # into a new column "environment" with value "MountainCar"
+        # None means to ignore a path part
+        folder_columns=(None, None, 'environment'),
+
+        # and creates a new column named "algorithm"
+        # whose value is the name of an experiment file, minus extension.
+        # For instance, ESARSA.json becomes ESARSA
+        file_col='algorithm',
+    )
+
+    assert df is not None
+    df['step_weighted_return'] = Metrics.step_weighted_return(df)
+
+    exp = results.get_any_exp()
+    steps = np.arange(0, exp.total_steps, SUBSAMPLE)
+
+    for env, env_df in split_over_column(df, col='environment'):
         f, ax = plt.subplots()
+        for alg, sub_df in split_over_column(env_df, col='algorithm'):
+            if len(sub_df) == 0: continue
 
-        all_empty = True
-        for alg in collection[env]:
-            df = collection[env, alg]
-            if df is None:
-                continue
-
-            res = ResultData(
-                data=df,
-                config={
-                    'step_return': Metric(time_summary=temporal.mean, preference=Preference.high),
-                },
+            report = Hypers.select_best_hypers(
+                sub_df,
+                metric='step_weighted_return',
+                prefer=Hypers.Preference.high,
+                time_summary=TimeSummary.mean,
+                statistic=Statistic.mean,
             )
 
-            all_empty = False
-            best_idx = res.get_best_hyper_idx('step_return')
-            line = res.get_learning_curve('step_return', best_idx)
+            print('-' * 25)
+            print(env, alg)
+            Hypers.pretty_print(report)
 
-            lo = line[0]
-            avg = line[1]
-            hi = line[2]
-            ax.plot(avg, label=alg, color=COLORS[alg], linewidth=0.25)
-            ax.fill_between(range(line.shape[1]), lo, hi, color=COLORS[alg], alpha=0.2)
+            _, ys = extract_learning_curves(
+                sub_df,
+                report.best_configuration,
+                metric='return',
+                interpolation=lambda x, y: compute_step_return(x, y, exp.total_steps),
+            )
 
-        if all_empty:
-            continue
+            ys = np.asarray(ys)[:, ::SUBSAMPLE]
+
+            res = curve_percentile_bootstrap_ci(
+                rng=np.random.default_rng(0),
+                y=ys,
+                statistic=Statistic.mean.value,
+            )
+
+            ax.plot(steps, res.sample_stat, label=alg, color=COLORS[alg], linewidth=0.5)
+            ax.fill_between(steps, res.ci[0], res.ci[1], color=COLORS[alg], alpha=0.2)
 
         ax.legend()
-
         if should_save:
             save(
                 save_path=f'{path}/plots',
