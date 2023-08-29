@@ -5,7 +5,7 @@ import utils.chex as cxu
 
 from abc import abstractmethod
 from typing import Any, Dict, Tuple
-from PyExpUtils.utils.Collector import Collector
+from PyExpUtils.collection.Collector import Collector
 from ReplayTables.ReplayBuffer import ReplayBuffer, Timestep
 
 from algorithms.BaseAgent import BaseAgent

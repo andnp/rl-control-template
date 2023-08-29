@@ -2,7 +2,7 @@ import numpy as np
 
 from abc import abstractmethod
 from typing import Any, Dict, Tuple
-from PyExpUtils.utils.Collector import Collector
+from PyExpUtils.collection.Collector import Collector
 from PyExpUtils.utils.random import sample
 from ReplayTables.interface import Timestep
 from ReplayTables.ingress.LagBuffer import LagBuffer

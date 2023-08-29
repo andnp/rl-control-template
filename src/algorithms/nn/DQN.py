@@ -1,6 +1,6 @@
 from functools import partial
 from typing import Any, Dict, Tuple
-from PyExpUtils.utils.Collector import Collector
+from PyExpUtils.collection.Collector import Collector
 from ReplayTables.PER import PrioritizedReplay
 from ReplayTables.ReplayBuffer import Batch
 

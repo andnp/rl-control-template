@@ -1,6 +1,6 @@
 from functools import partial
 from typing import Dict, Tuple
-from PyExpUtils.utils.Collector import Collector
+from PyExpUtils.collection.Collector import Collector
 from ReplayTables.interface import Batch
 
 from algorithms.nn.NNAgent import NNAgent, AgentState

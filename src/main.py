@@ -13,8 +13,9 @@ from experiment import ExperimentModel
 from utils.checkpoint import Checkpoint
 from utils.preempt import TimeoutHandler
 from problems.registry import getProblem
-from PyExpUtils.results.pandas import saveCollector
-from PyExpUtils.utils.Collector import Collector, Ignore, Window, Subsample
+from PyExpUtils.results.sqlite import saveCollector
+from PyExpUtils.collection.Collector import Collector
+from PyExpUtils.collection.Sampler import Ignore, Window, Subsample, Identity
 
 # ------------------
 # -- Command Args --
@@ -67,12 +68,9 @@ for idx in indices:
         #  - Identity() (save everything)
         #  - Window(n)  take a window average of size n
         #  - Subsample(n) save one of every n elements
-        config={
-            'step_return': Window(100),
-            'episodic_return': Subsample(10),
-        },
+        config={},
         # by default, ignore keys that are not explicitly listed above
-        default=Ignore(),
+        default=Identity(),
     ))
     collector.setIdx(idx)
     run = exp.getRun(idx)
@@ -96,19 +94,21 @@ for idx in indices:
         glue.start()
 
     for step in range(glue.total_steps, exp.total_steps):
+        collector.next_frame()
         chk.maybe_save()
         interaction = glue.step()
 
         if interaction.t or (exp.episode_cutoff > -1 and glue.num_steps >= exp.episode_cutoff):
-            # track how many episodes are completed (cutoff is counted as termination for this count)
-            chk['episode'] += 1
-
             # allow agent to cleanup traces or other stateful episodic info
             agent.cleanup()
 
             # collect some data
-            collector.repeat('step_return', glue.total_reward, glue.num_steps)
-            collector.collect('episodic_return', glue.total_reward)
+            collector.collect('return', glue.total_reward)
+            collector.collect('episode', chk['episode'])
+            collector.collect('steps', glue.num_steps)
+
+            # track how many episodes are completed (cutoff is counted as termination for this count)
+            chk['episode'] += 1
 
             # compute the average time-per-step in ms
             avg_time = 1000 * (time.time() - start_time) / (step + 1)
@@ -119,17 +119,8 @@ for idx in indices:
 
             glue.start()
 
-    # try to detect if a run never finished
-    # if we have no data in the 'step_return' key, then the termination condition was never hit
-    if len(collector.get('step_return', idx)) == 0:
-        # collect an array of rewards that is the length of the number of steps in episode
-        # effectively we count the whole episode as having received the same final reward
-        collector.repeat('step_return', glue.total_reward, glue.num_steps)
-        # also track the reward per episode (this may not have the same length for all agents!)
-        collector.collect('episodic_return', glue.total_reward)
-
     collector.reset()
-    collector.fillRest('step_return', int(exp.total_steps / 100))
+
     # ------------
     # -- Saving --
     # ------------

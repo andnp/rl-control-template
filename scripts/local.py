@@ -31,7 +31,7 @@ if __name__ == "__main__":
     pool = Pool(6)
 
     cmds = []
-    e_to_missing = gather_missing_indices(cmdline.e, cmdline.runs, 'step_return', loader=Experiment.load)
+    e_to_missing = gather_missing_indices(cmdline.e, cmdline.runs, loader=Experiment.load)
     for path in cmdline.e:
         exp = Experiment.load(path)
 

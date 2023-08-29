@@ -1,7 +1,7 @@
 from functools import partial
 from environments.Minatar import Minatar
 from problems.BaseProblem import BaseProblem
-from PyExpUtils.utils.Collector import Collector
+from PyExpUtils.collection.Collector import Collector
 from experiment.ExperimentModel import ExperimentModel
 
 class MinatarProblem(BaseProblem):

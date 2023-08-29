@@ -2,7 +2,7 @@ import numpy as np
 import RlGlue.agent
 
 from typing import Dict, Tuple
-from PyExpUtils.utils.Collector import Collector
+from PyExpUtils.collection.Collector import Collector
 
 
 class BaseAgent(RlGlue.agent.BaseAgent):

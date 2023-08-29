@@ -1,5 +1,5 @@
 from PyRlEnvs.domains.MountainCar import GymMountainCar as Env
-from PyExpUtils.utils.Collector import Collector
+from PyExpUtils.collection.Collector import Collector
 from experiment.ExperimentModel import ExperimentModel
 from problems.BaseProblem import BaseProblem
 

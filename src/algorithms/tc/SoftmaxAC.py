@@ -3,7 +3,7 @@ import numpy as np
 from numba import njit
 from typing import Dict, Tuple
 from utils.checkpoint import checkpointable
-from PyExpUtils.utils.Collector import Collector
+from PyExpUtils.collection.Collector import Collector
 
 from algorithms.tc.TCAgent import TCAgent
 

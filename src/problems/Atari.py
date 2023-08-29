@@ -1,7 +1,7 @@
 from experiment.ExperimentModel import ExperimentModel
 from problems.BaseProblem import BaseProblem
 from environments.Atari import Atari as AtariEnv
-from PyExpUtils.utils.Collector import Collector
+from PyExpUtils.collection.Collector import Collector
 
 def upperFirst(s: str):
     f = s[0].upper()

@@ -1,5 +1,5 @@
 from typing import Optional
-from PyExpUtils.utils.Collector import Collector
+from PyExpUtils.collection.Collector import Collector
 from RlGlue.environment import BaseEnvironment
 
 from experiment.ExperimentModel import ExperimentModel
