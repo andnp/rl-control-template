@@ -1,4 +1,5 @@
 # ignore all results folders
+results
 results/
 results.tar
 .tmp/
