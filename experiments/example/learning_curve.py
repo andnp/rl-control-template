@@ -65,7 +65,7 @@ if __name__ == "__main__":
     )
 
     assert df is not None
-    df['step_weighted_return'] = Metrics.step_weighted_return(df)
+    Metrics.add_step_weighted_return(df)
 
     exp = results.get_any_exp()
     steps = np.arange(0, exp.total_steps, SUBSAMPLE)
