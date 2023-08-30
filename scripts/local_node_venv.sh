@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 cp $path/requirements.txt $SLURM_TMPDIR/
 cd $SLURM_TMPDIR
