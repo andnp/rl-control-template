@@ -3,6 +3,8 @@
 #SBATCH --time=00:15:00
 #SBATCH --account=rrg-whitem
 
+module load python/3.11
+
 cp $path/requirements.txt $SLURM_TMPDIR/
 cd $SLURM_TMPDIR
 python -m venv .venv
