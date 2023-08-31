@@ -1,82 +1,126 @@
 # rl-template
 
+# Getting started
+There are typically three stages of running experiments:
+1. Developing code locally
+2. Running code on the cluster
+3. Analyzing and plotting results
+
+This readme is structured in a similar fashion.
+I **highly** recommend going through all three steps with the example code **before** getting started on your project, unless you are an advanced user.
+
+**Note:** things go out of date quickly. The best way to contribute to this project is to document your setup journey and ping @andnp if something goes wrong, and how you fixed it.
+Or alternatively, put up a pull request in this repo updating the code or the instructions (and then ping me on slack anyways so I don't ignore you).
+
 ## Setting up your own repo
 
 This repository is a github template repository.
 This means that you can click the green `Use this template` button on the github page for this repo to start a new repo that is a copy of this one.
 The difference between a template and a clone is that changes made in a template repository are not forwarded to the child repositories.
+That is, once you hit the green button you will be fully divorced from me. If I go and break everything in this template repo, I will not accidentally break _your_ code.
 
 
 ---
-## Setting up repo
-**This codebase only works with python 3.9 and above.**
+## Setting up repo locally
+**This codebase only works with python 3.11 and above.**
+
+Prereqs:
+* I assume you have python3.11 installed. If not, I strongly recommend setting up pyenv.
+* I assume you are familiar with virtual environments.
+* I assume you have rust installed. If not, I strongly recommend setting up rustup.
 
 Packages are stored in a `requirements.txt` file.
 To install:
-```
+```bash
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
+Every time you open a new shell, _make sure you have activated the correct virtual environment_.
 
-On machines that you do not have root access to (like compute canada machines), you will need to install in the user directory.
-You can do this with:
+Now let's test your installation:
+```bash
+python src/main.py -e experiments/example/MountainCar/EQRC.json -i 0
 ```
-pip install --user -r requirements.txt
+This should start spitting out several columns of numbers. Something like:
+```bash
+# episode number, total steps, return, time per step, frames per second
+DEBUG:exp:1 3221 -3222 1.187ms 841
+DEBUG:exp:2 3458 -237 1.151ms 868
+DEBUG:exp:3 3697 -239 1.111ms 899
+DEBUG:exp:4 3871 -174 1.084ms 922
+DEBUG:exp:5 8208 -4337 0.8237ms 1213
+DEBUG:exp:6 8864 -656 0.8148ms 1227
+DEBUG:exp:7 9071 -207 0.8086ms 1236
+DEBUG:exp:8 9252 -181 0.8033ms 1244
+DEBUG:exp:9 9401 -149 0.7999ms 1249
+DEBUG:exp:10 9739 -338 0.7915ms 1263
+DEBUG:exp:11 10064 -325 0.7835ms 1276
+DEBUG:exp:12 10888 -824 0.7743ms 1291
+DEBUG:exp:13 11131 -243 0.7693ms 1299
 ```
-Or you need to set up a virtual environment:
-```
-virtualenv -p python3 env
-```
-
+Let this run to completion, should only be a couple of minutes.
+This is your primary command to do fast iteration of code. Make your changes, call this script (though probably with a different `.json` file that corresponds to your experiment).
 
 ---
-## Step-by-step example
-To get set-up on compute canada:
+## Set up on compute canada
+This is much more difficult.
+**Plan to dedicate a couple of hours to setup.**
+
+If all goes according to plan, the `scripts/setup_cc.sh` script should be enough.
+But things rarely go according to plan.
 ```bash
 ssh $cedar
+cd projects/andnp
 # You should replace this github url with your repo that is a copy of the template repo
 git clone https://github.com/andnp/rl-control-template.git
 cd rl-control-template
 
-# build virtual environment
-virtualenv -p python3 env
-. env/bin/activate
-
-# install dependencies
-pip install -r requirements.txt
+./scripts/setup_cc.sh
+sq
 ```
+After `setup_cc.sh` has run, you should see that you have a short job scheduled.
+Go grab a coffee while you wait for this job to run.
 
-Here is a quick guide to run an already existent experiment on compute canada.
-This should run a parameter sweep over `alpha` and `epsilon` for e-greedy SARSA on MountainCar then plot the learning curve of the parameter setting that achieves the highest return averaged over 10 runs with standard error bars.
+Once you have a `venv.tar.xz` in your project directory, you are ready to continue.
 ```bash
-ssh $cedar
-cd rl-control-template
-git pull # make sure you are up to date
+# activate your **global** virtualenv
+source ~/.venv/bin/activate
 
-# remove any old results that you might have lying around
-# that way you don't accidentally zip them up and re-download them after the experiment
-rm -rf results &
+# schedule a **small** job
+python scripts/slurm.py --clusters clusters/cedar.json --runs 5 -e experiments/example/Acrobot/*.json experiments/example/Cartpole/*.json experiments/example/MountainCar/*.json
 
-# check the cluster parameters
-# make sure to balance using many parallel cpu cores
-# while also being a good citizen of the resources (e.g. don't schedule 1000s of 2m jobs)
-nano clusters/cedar.json
-
-# run the experiment
-python scripts/slurm.py clusters/cedar.json src/main.py ./ 10 experiments/example/*.json
-
-# wait for a while
-# then zip and download results
-tar -cavf results.tar.bz2 results
-
-# go back to your laptop
-exit
-scp $cedar:~/rl-control-template/results.tar.bz2 ./
-tar -xvf results.tar.bz2
-
-# plot your results
-python analysis/learning_curve.py experiments/example/*.json
+# check that you have a few jobs scheduled (around 20)
+sq
 ```
 
+Once those jobs complete, you should have a `results/` folder with several `.db` files nested deeply within.
+To make sure you have all of the results that you expect, just call the scheduling script again (don't forget your global virtualenv):
+```bash
+source ~/.venv/bin/activate
+python scripts/slurm.py --clusters clusters/cedar.json --runs 5 -e experiments/example/Acrobot/*.json experiments/example/Cartpole/*.json experiments/example/MountainCar/*.json
+```
+This script should report that there is no more work to complete.
+
+Finally, zip up and download your results:
+```bash
+tar -cavf results.tar.xz results
+# go back to your computer
+exit
+# download the results
+scp $cedar:~/projects/andnp/rl-control-template/results.tar.xz ./
+# and unzip
+tar -xvf results.tar.xz
+```
+
+Now you have all of the results locally and are ready to analyze them.
+Results are stored in several sqlite3 databases. You can go open these yourself and use whatever plotting libraries you are comfortable with.
+I also have a few utilities here for common operations (hyperparameter studies, learning curves, etc.) that load the databases into pandas `DataFrame`s.
+If you are comfortable with pandas, I recommend using my code to load the results and start from there.
+
+```bash
+python experiments/example/learning_curve.py
+```
 
 ---
 ## Dependencies
@@ -144,90 +188,6 @@ This *does not* contain scripts for analysing results, only shared logic (e.g. p
 These are just reusable code chunks that have no other clear home.
 I try to sort them into files that roughly name how/when they will be used (e.g. things that manipulate files paths goes in `paths.py`, things that manipulate arrays goes in `arrays.py`, etc.).
 
-### clusters
-This folder contains the job submission information that is needed to run on a cluster.
-These are also `.json` files that look like:
-```jsonc
-{
-    "account": "which compute canada account to use",
-    "time": "how much time the job is expected to take",
-    "nodes": "the number of cpu cores to use",
-    "memPerCpu": "how much memory one parameter setting requires", // doesn't need to change
-    "tasksPerNode": "how many parameter settings to run in serial on each cpu core"
-}
-```
-
-Some quick terminology (that I made up and is kinda bad):
-* **node**: a CPU core
-* **task**: a single call to the experiment entry file (e.g. `src/main.py`). Generally only runs one parameter setting for a single run.
-* **job**: a compute canada job (contains many tasks and run across multiple nodes).
-
-The `nodes` setting determines the number of CPU cores for the job to request.
-These CPU cores may not all be on the same server node and most likely will be split across several server nodes.
-The job scheduling script bundled with this template repo will handle distributing jobs across multiple server nodes in the way recommended by compute canada support.
-
-The `tasksPerNode` sets up the number of processes (calls to the experiment entry file) to be lined up per node requested.
-If you request `nodes=16`, then 16 jobs will be run in **parallel**.
-If you request `tasksPerNode=4`, then each node will run 4 tasks in **serial**.
-In total, 64 tasks will be scheduled for one compute canada job with this configuration.
-If there are 256 total tasks that need to be run, then 4 compute canada jobs will be scheduled.
-
-
----
-## Running the code
-There are a few layers for running the code.
-The most simple layer is directly running a single experiment for a single parameter setting.
-The highest layer will schedule jobs on a cluster (or on a local computer) that sweeps over all of the parameter settings.
-
-The higher layers of running the code work by figuring out how to call the most simple layer many times, then generating a script that calls the simple layer for each parameter setting.
-
-**Everything should be run from the root directory of the repo!**
-
-### Directly run experiment
-Let's say you want to generate a learning curve over N runs of an algorithm.
-```
-python src/main.py <N> <path/to/experiment.json> <parameter_setting_idx>
-```
-It isn't super easy to know which `parameter_setting_idx` to use.
-It is more simple to make an experiment description `.json` that only contains one possible parameter permutation (i.e. has no arrays in it).
-This will save the results in the results folder as specified above.
-
-### Run parameter sweeps
-If you want to run a larger experiment (i.e. a parameter sweep), you'll want to run these on a cluster (like cedar).
-```
-python scripts/slurm.py ./clusters/cedar.json src/main.py <path/where/results/are/saved> <num runs> <path/to/experiment.json>
-```
-**example:** if I want to run an experiment called `./experiments/idealH/gtd2_not.json`
-```
-python scripts/slurm.py ./clusters/cedar.json src/main.py ./ 100 ./experiments/idealH/gtd2_not.json
-```
-
-To run multiple experiments at once, you can specify several `.json` files.
-```
-python scripts/slurm.py ./clusters/cedar.json src/main.py ./ 100 ./experiments/idealH/*.json
-```
-or
-```
-python scripts/slurm.py ./clusters/cedar.json src/main.py ./ 100 ./experiments/idealH/gtd2.json ./experiments/idealH/gtd2_not.json
-```
-
-### Generate learning curves
-The top-level `analysis` folder contains the scripts for generating learning curves.
-
-```
-python analysis/learning_curve.py <path/to/experiments.json>
-```
-
-**example:** One algorithm (one line)
-```
-python analysis/learning_curve.py ./experiments/idealH/gtd2_not.json
-```
-
-**example:** compare algorithms (multiple lines)
-```
-python analysis/learning_curve.py ./experiments/idealH/gtd2_not.json ./experiments/idealH/gtd2.json
-```
-
 
 ---
 ## FAQs
@@ -235,7 +195,7 @@ python analysis/learning_curve.py ./experiments/idealH/gtd2_not.json ./experimen
 * What are the best settings for `clusters/cedar.json`?
 
   As per the best practices document from compute canada, I make sure my CC jobs _always_ take at least one hour to complete.
-  Because many of my **tasks** take about 5 minutes, I generally set the `tasksPerNode` parameter to ~16 to accomplish this (16*5m = 1h20m).
+  Because many of my **tasks** take about 5 minutes, I generally set the `sequential` parameter to ~16 to accomplish this (16*5m = 1h20m).
   I also try to make sure my jobs take no longer than 12hrs to complete (if I can help it).
   The optimal---if I can wait---is to make the jobs take just under 3hrs so that my jobs are in the highest priority queue, but put the least strain on the scheduler.
   Always leave a bit of wiggle room.
@@ -255,14 +215,14 @@ print(exp.numPermutations())
 
   Git is your friend.
   All of my code is always checked-in to git, and I have my experiment code cloned on my laptop and on the CC server.
-  I use GitHub (or sometime bitbucket) private repos to house the code remotely.
+  I use GitHub private repos to house the code remotely.
   I make liberal use of git tags to mark checkpoints in the repo's lifespan (e.g. before I add a new contributor: `git tag before-aj-messed-things-up`, or when I submit a paper `git tag icml-2020`).
   This helps maintain my sanity when code changes and evolves over time, because now all codebase states are still accessible.
 
 * What if one of my jobs fails or some of the tasks did not finish in time?
 
   One of the major advantages to the way this experiment framework is set up is that you can trivially determine exactly which results are missing after scheduling a job.
-  In fact, the job scheduling script in this template repo already handles this issue by default.
+  In fact, the job scheduling script in this template repo already handles this by default.
   If you have results that are missing, simply run the scheduling script again with no changes and it will schedule only the missing tasks.
 
 * I'm running the scheduling script, but it exits immediately and no jobs are scheduled?
