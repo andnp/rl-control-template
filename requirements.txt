@@ -16,8 +16,8 @@ PyExpUtils-andnp~=6.0
 pyrlenvs-andnp~=2.0
 ReplayTables-andnp~=5.0
 RlGlue-andnp~=1.0
+RlEvaluation~=1.0
 PyExpPlotting-andnp
-RlEvaluation
 
 matplotlib
 flake8

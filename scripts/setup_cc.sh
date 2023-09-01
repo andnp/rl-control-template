@@ -13,4 +13,4 @@ echo "installing PyExpUtils"
 pip install PyExpUtils-andnp
 
 echo "scheduling a job to install project dependencies"
-sbatch --ntasks=1 --mem-per-cpu="4G" --export=path="$(pwd)" scripts/local_node_venv.sh
+sbatch --ntasks=1 --mem-per-cpu="12G" --export=path="$(pwd)" scripts/local_node_venv.sh
