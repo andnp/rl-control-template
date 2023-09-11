@@ -13,8 +13,10 @@ from experiment import ExperimentModel
 from utils.checkpoint import Checkpoint
 from utils.preempt import TimeoutHandler
 from problems.registry import getProblem
-from PyExpUtils.results.pandas import saveCollector
-from PyExpUtils.utils.Collector import Collector, Ignore, Subsample, MovingAverage, Pipe
+from PyExpUtils.results.sqlite import saveCollector
+from PyExpUtils.collection.Collector import Collector
+from PyExpUtils.collection.Sampler import Ignore, MovingAverage, Subsample, Identity
+from PyExpUtils.collection.utils import Pipe
 
 # ------------------
 # -- Command Args --
