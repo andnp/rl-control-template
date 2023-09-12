@@ -19,6 +19,7 @@ parser.add_argument('--runs', type=int, required=True)
 parser.add_argument('-e', type=str, nargs='+', required=True)
 parser.add_argument('--entry', type=str, default='src/main.py')
 parser.add_argument('--results', type=str, default='./')
+parser.add_argument('--debug', action='store_true', default=False)
 
 cmdline = parser.parse_args()
 
@@ -51,20 +52,20 @@ export OMP_NUM_THREADS=1
 # -----------------
 # Environment check
 # -----------------
-if not os.path.exists(venv_origin):
+if not cmdline.debug and not os.path.exists(venv_origin):
     print("WARNING: zipped virtual environment not found at:", venv_origin)
-    print("Trying to make one now")
-    code = os.system('tar -caf venv.tar.xz .venv')
-    if code:
-        raise Exception("Failed to make virtual env")
+    print("Make sure to run `scripts/setup_cc.sh` first.")
+    exit(1)
 
 # ----------------
 # Scheduling logic
 # ----------------
 slurm = Slurm.fromFile(cmdline.cluster)
 
+threads = slurm.threads_per_task if isinstance(slurm, Slurm.SingleNodeOptions) else 1
+
 # compute how many "tasks" to clump into each job
-groupSize = slurm.cores * slurm.sequential
+groupSize = int(slurm.cores / threads) * slurm.sequential
 
 # compute how much time the jobs are going to take
 hours, minutes, seconds = slurm.time.split(':')
@@ -80,7 +81,8 @@ cost = sum(compute_cost(math.ceil(len(job_list) / groupSize)) for job_list in mi
 perc = (cost / ANNUAL_ALLOCATION) * 100
 
 print(f"Expected to use {cost:.2f} core years, which is {perc:.4f}% of our annual allocation")
-input("Press Enter to confirm or ctrl+c to exit")
+if not cmdline.debug:
+    input("Press Enter to confirm or ctrl+c to exit")
 
 # start scheduling
 for path in missing:
@@ -88,7 +90,9 @@ for path in missing:
         l = list(g)
         print("scheduling:", path, l)
         # make sure to only request the number of CPU cores necessary
-        cores = min([slurm.cores, len(l)])
+        tasks = min([groupSize, len(l)])
+        par_tasks = int(tasks // slurm.sequential)
+        cores = par_tasks * threads
         sub = dataclasses.replace(slurm, cores=cores)
 
         # build the executable string
@@ -101,10 +105,10 @@ for path in missing:
         # generate the bash script which will be scheduled
         script = getJobScript(parallel)
 
-        # uncomment for debugging the scheduler to see what bash script would have been scheduled
-        # print(Slurm.to_cmdline_flags(sub))
-        # print(script)
-        # exit()
+        if cmdline.debug:
+            print(Slurm.to_cmdline_flags(sub))
+            print(script)
+            exit()
 
         Slurm.schedule(script, sub)
 

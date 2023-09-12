@@ -5,13 +5,13 @@ import shutil
 import pickle
 import logging
 from typing import Any, Callable, Dict, Optional, Sequence, Type, TypeVar, Protocol
-from experiment.ExperimentModel import ExperimentModel
+from PyExpUtils.models.ExperimentDescription import ExperimentDescription
 
 T = TypeVar('T')
 Builder = Callable[[], T]
 
 class Checkpoint:
-    def __init__(self, exp: ExperimentModel, idx: int, base_path: str = './', save_every: float = -1) -> None:
+    def __init__(self, exp: ExperimentDescription, idx: int, base_path: str = './', save_every: float = -1) -> None:
         self._storage: Dict[str, Any] = {}
         self._exp = exp
         self._idx = idx

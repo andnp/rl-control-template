@@ -15,7 +15,8 @@ from utils.preempt import TimeoutHandler
 from problems.registry import getProblem
 from PyExpUtils.results.sqlite import saveCollector
 from PyExpUtils.collection.Collector import Collector
-from PyExpUtils.collection.Sampler import Ignore, Window, Subsample, Identity
+from PyExpUtils.collection.Sampler import Ignore, MovingAverage, Subsample, Identity
+from PyExpUtils.collection.utils import Pipe
 
 # ------------------
 # -- Command Args --
@@ -68,9 +69,17 @@ for idx in indices:
         #  - Identity() (save everything)
         #  - Window(n)  take a window average of size n
         #  - Subsample(n) save one of every n elements
-        config={},
+        config={
+            'return': Identity(),
+            'episode': Identity(),
+            'steps': Identity(),
+            'delta': Pipe(
+                MovingAverage(0.99),
+                Subsample(100),
+            ),
+        },
         # by default, ignore keys that are not explicitly listed above
-        default=Identity(),
+        default=Ignore(),
     ))
     collector.setIdx(idx)
     run = exp.getRun(idx)

@@ -14,6 +14,7 @@ import experiment.ExperimentModel as Experiment
 parser = argparse.ArgumentParser()
 parser.add_argument('--runs', type=int, required=True)
 parser.add_argument('-e', type=str, nargs='+', required=True)
+parser.add_argument('--cpus', type=int, default=8)
 parser.add_argument('--entry', type=str, default='src/main.py')
 parser.add_argument('--results', type=str, default='./')
 
@@ -28,7 +29,7 @@ def count(pre, it):
 if __name__ == "__main__":
     cmdline = parser.parse_args()
 
-    pool = Pool(6)
+    pool = Pool(cmdline.cpus)
 
     cmds = []
     e_to_missing = gather_missing_indices(cmdline.e, cmdline.runs, loader=Experiment.load)

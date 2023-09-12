@@ -9,7 +9,7 @@ from PyExpUtils.results.Collection import ResultCollection
 
 from RlEvaluation.config import data_definition
 from RlEvaluation.interpolation import compute_step_return
-from RlEvaluation.temporal import TimeSummary, extract_learning_curves, curve_percentile_bootstrap_ci
+from RlEvaluation.temporal import TimeSummary, extract_multiple_learning_curves, curve_percentile_bootstrap_ci
 from RlEvaluation.statistics import Statistic
 from RlEvaluation.utils.pandas import split_over_column
 
@@ -68,7 +68,6 @@ if __name__ == "__main__":
     Metrics.add_step_weighted_return(df)
 
     exp = results.get_any_exp()
-    steps = np.arange(0, exp.total_steps, SUBSAMPLE)
 
     for env, env_df in split_over_column(df, col='environment'):
         f, ax = plt.subplots()
@@ -79,7 +78,7 @@ if __name__ == "__main__":
                 sub_df,
                 metric='step_weighted_return',
                 prefer=Hypers.Preference.high,
-                time_summary=TimeSummary.mean,
+                time_summary=TimeSummary.sum,
                 statistic=Statistic.mean,
             )
 
@@ -87,23 +86,27 @@ if __name__ == "__main__":
             print(env, alg)
             Hypers.pretty_print(report)
 
-            _, ys = extract_learning_curves(
+            xs, ys = extract_multiple_learning_curves(
                 sub_df,
-                report.best_configuration,
+                report.uncertainty_set_configurations,
                 metric='return',
                 interpolation=lambda x, y: compute_step_return(x, y, exp.total_steps),
             )
 
+            xs = np.asarray(xs)[:, ::SUBSAMPLE]
             ys = np.asarray(ys)[:, ::SUBSAMPLE]
+
+            # make sure all of the x values are the same for each curve
+            assert np.all(np.isclose(xs[0], xs))
 
             res = curve_percentile_bootstrap_ci(
                 rng=np.random.default_rng(0),
                 y=ys,
-                statistic=Statistic.mean.value,
+                statistic=Statistic.mean,
             )
 
-            ax.plot(steps, res.sample_stat, label=alg, color=COLORS[alg], linewidth=0.5)
-            ax.fill_between(steps, res.ci[0], res.ci[1], color=COLORS[alg], alpha=0.2)
+            ax.plot(xs[0], res.sample_stat, label=alg, color=COLORS[alg], linewidth=0.5)
+            ax.fill_between(xs[0], res.ci[0], res.ci[1], color=COLORS[alg], alpha=0.2)
 
         ax.legend()
         if should_save:
