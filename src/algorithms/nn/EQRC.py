@@ -9,6 +9,7 @@ from utils.jax import vmap_except, argmax_with_random_tie_breaking
 
 import jax
 import optax
+import numpy as np
 import haiku as hk
 import utils.hk as hku
 
@@ -50,8 +51,9 @@ class EQRC(NNAgent):
         batch = self.buffer.sample(self.batch_size)
         self.state, metrics = self._computeUpdate(self.state, batch)
 
+        metrics = jax.device_get(metrics)
         for k, v in metrics.items():
-            self.collector.collect(k, v)
+            self.collector.collect(k, np.mean(v).item())
 
     # -------------
     # -- Updates --

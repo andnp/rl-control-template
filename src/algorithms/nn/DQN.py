@@ -74,13 +74,15 @@ class DQN(NNAgent):
         weights = self.buffer.isr_weights(batch.eid)
         self.state, metrics = self._computeUpdate(self.state, batch, weights)
 
+        metrics = jax.device_get(metrics)
+
         if isinstance(self.buffer, PrioritizedReplay):
-            priorities = jax.device_get(metrics['delta'])
+            priorities = metrics['delta']
             priorities = np.abs(priorities)
             self.buffer.update_priorities(batch, priorities)
 
         for k, v in metrics.items():
-            self.collector.collect(k, v)
+            self.collector.collect(k, np.mean(v).item())
 
         if self.updates % self.target_refresh == 0:
             self.state.target_params = self.state.params
