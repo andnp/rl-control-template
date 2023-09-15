@@ -91,7 +91,7 @@ for path in missing:
         print("scheduling:", path, l)
         # make sure to only request the number of CPU cores necessary
         tasks = min([groupSize, len(l)])
-        par_tasks = int(tasks // slurm.sequential)
+        par_tasks = int(tasks // slurm.sequential) + (0 if tasks % slurm.sequential == 0 else 1)
         cores = par_tasks * threads
         sub = dataclasses.replace(slurm, cores=cores)
 
