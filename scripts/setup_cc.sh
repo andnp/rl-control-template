@@ -3,7 +3,7 @@
 module load python/3.11
 
 # make sure home folder has a venv
-if [ ! -d "~/.venv" ]; then
+if [ ! -d ~/.venv ]; then
   echo "making a new virtual env in ~/.venv"
   python -m venv ~/.venv
 fi
