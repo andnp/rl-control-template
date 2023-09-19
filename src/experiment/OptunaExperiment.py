@@ -1,8 +1,7 @@
 import sys
 import json
 import optuna
-import numpy as np
-from typing import Any, Dict, Sequence
+from typing import Any, Dict
 from PyExpUtils.models.ExperimentDescription import ExperimentDescription
 from PyExpUtils.utils.permute import reconstructParameters
 
@@ -16,61 +15,64 @@ class ExperimentModel(ExperimentDescription):
         self.evaluation_steps = d['evaluation_steps']
         self.evaluation_runs = d['evaluation_runs']
         self.search_epochs = d['search_epochs']
+        self.sim_epochs = d.get('simultaneous_epochs', 2)
 
         self.config_defs = d['configuration_definitions']
 
-        self._idx = 0
+        self._global_idx = 0
         self.study: optuna.Study | None = None
-        self.trial: optuna.Trial | None = None
         d, c = _deserialize_distributions(self.config_defs)
 
-        self._dists = d
+        self.dists = d
         self._consts = c
 
-    def set_idx(self, idx: int):
-        self._idx = idx
+        self._params: Dict[int, Any] = {}
+        self._trials: Dict[int, Any] = {}
 
-    def next_hypers(self):
+    @property
+    def run(self):
+        return self.getRun(self._global_idx)
+
+    def set_idx(self, idx: int):
+        self._global_idx = idx
+
+    def next_hypers(self, idx: int):
         if self.study is None:
+            warm_start = int(self.search_epochs // 2)
+            warm_start = min(8, warm_start)
             self.study = optuna.create_study(
                 direction='maximize',
                 sampler=optuna.samplers.TPESampler(
-                    seed=self.getRun(self._idx),
-                    n_ei_candidates=self.evaluation_runs,
-                    n_startup_trials=int((self.search_epochs * self.evaluation_runs) // 2),
+                    seed=self.getRun(self._global_idx),
+                    n_startup_trials=warm_start,
                 ),
             )
-        self.trial = self.study.ask(self._dists)
+        trial = self.study.ask(self.dists)
+        self._trials[idx] = trial
+        self._params[idx] = trial.params | self._consts
+
+        return trial
 
     def get_hypers(self, idx: int):
-        assert self.trial is not None
-        params = reconstructParameters(self.trial.params | self._consts)
+        params = self._params[idx]
+        return reconstructParameters(params)
+
+    def get_flat_hypers(self, idx: int):
+        params = self._params[idx]
         return params
 
-    def get_flat_hypers(self):
-        assert self.trial is not None
-        params = self.trial.params | self._consts
-        return params
-
-    def record_metric(self, v: Sequence[float]):
-        assert self.trial is not None
+    def record_metric(self, idx: int, v: float):
         assert self.study is not None
-
-        trials = [optuna.trial.create_trial(
-            params=self.trial.params,
-            distributions=self.trial.distributions,
-            value=v[i]
-        ) for i in range(1, len(v))]
-
-        self.study.tell(self.trial, v[0])
-        self.study.add_trials(trials)
+        trial = self._trials[idx]
+        del self._trials[idx]
+        self.study.tell(trial, v)
 
     def get_hyper_names(self):
-        return set(self._dists.keys()) | set(self._consts.keys())
+        return set(self.dists.keys()) | set(self._consts.keys())
 
 
 def _deserialize_distributions(config: Dict[str, Any]):
-    flat = _flatten_dists(config)
+    flat = _flattendists(config)
 
     out = {}
     consts = {}
@@ -99,7 +101,7 @@ def _deserialize_distributions(config: Dict[str, Any]):
 
     return out, consts
 
-def _flatten_dists(config: Dict[str, Any], path: str = '', out: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def _flattendists(config: Dict[str, Any], path: str = '', out: Dict[str, Any] | None = None) -> Dict[str, Any]:
     out = out or {}
 
     for k, v in config.items():
@@ -108,7 +110,7 @@ def _flatten_dists(config: Dict[str, Any], path: str = '', out: Dict[str, Any] |
             out[p] = v
 
         elif isinstance(v, dict):
-            _flatten_dists(v, p + '.', out)
+            _flattendists(v, p + '.', out)
 
         else:
             out[p] = v

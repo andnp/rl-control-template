@@ -12,10 +12,11 @@ from multiprocessing.pool import Pool
 from RlGlue import RlGlue
 from experiment import OptunaExperiment
 from problems.registry import getProblem
+from utils.iterators import partition
 from PyExpUtils.results.sqlite import saveCollector
 from PyExpUtils.collection.Collector import Collector
-from PyExpUtils.collection.Sampler import Ignore, MovingAverage, Subsample, Identity
-from PyExpUtils.collection.utils import Pipe
+from PyExpUtils.collection.Sampler import Ignore, Identity
+from PyExpUtils.utils.generator import group
 
 # ------------------
 # -- Command Args --
@@ -53,7 +54,7 @@ if not prod:
 # --------------------------
 # -- Single run execution --
 # --------------------------
-def execute(exp: OptunaExperiment.ExperimentModel, config_num: int, run: int):
+def execute(exp: OptunaExperiment.ExperimentModel, config_id: int, internal_seed: int):
     Problem = getProblem(exp.problem)
 
     collector = Collector(
@@ -66,26 +67,23 @@ def execute(exp: OptunaExperiment.ExperimentModel, config_num: int, run: int):
             'return': Identity(),
             'episode': Identity(),
             'steps': Identity(),
-            'delta': Pipe(
-                MovingAverage(0.99),
-                Subsample(100),
-            ),
         },
         # by default, ignore keys that are not explicitly listed above
         default=Ignore(),
     )
-    collector.setIdx(0)
-    collector.setContext(exp.get_flat_hypers())
-    collector.addContext('config', config_num)
-    collector.addContext('seed', exp.getRun(args.idx))
-    collector.addContext('internal_seed', run)
+    collector.setIdx(config_id)
+    collector.setContext(exp.get_flat_hypers(config_id))
+    collector.addContext('config', config_id)
+    collector.addContext('seed', exp.run)
+    collector.addContext('internal_seed', internal_seed)
 
     # set random seeds accordingly
-    seed = exp.getRun(args.idx) * exp.evaluation_runs + run
+    seed = exp.run * exp.evaluation_runs + internal_seed
     np.random.seed(seed)
 
     # build stateful things and attach to checkpoint
-    problem = Problem(exp, seed, collector)
+    problem = Problem(exp, config_id, collector)
+    problem.seed = seed
     agent = problem.getAgent()
     env = problem.getEnvironment()
 
@@ -123,22 +121,37 @@ def execute(exp: OptunaExperiment.ExperimentModel, config_num: int, run: int):
     # -- Saving --
     # ------------
     saveCollector(exp, collector, base=args.save_path)
-    return score
 
+    return float(score)
+
+def setup(exp: OptunaExperiment.ExperimentModel, config_id: int):
+    for seed in range(exp.evaluation_runs):
+        exp.next_hypers(config_id)
+        yield config_id, seed
+
+def flatten(it):
+    return (el for iter in it for el in iter)
 
 if __name__ == '__main__':
     pool = Pool(args.jobs)
     exp = OptunaExperiment.load(args.exp)
 
     exp.set_idx(args.idx)
-    for i in range(exp.search_epochs):
-        exp.next_hypers()
-        logger.debug('-' * 30)
-        logger.debug(f'{i + 1}/{exp.search_epochs}')
-        logger.debug(exp.get_hypers(0))
+    epochs = range(exp.search_epochs)
+    setup_it = map(partial(setup, exp), epochs)
+    groups = group(setup_it, exp.sim_epochs)
 
-        scores = pool.map(partial(execute, exp, i), range(exp.evaluation_runs))
-        logger.debug(scores)
+    for g in groups:
+        tasks = flatten(g)
+        config_ids, seeds = zip(*tasks)
+        scores = pool.starmap(partial(execute, exp), zip(config_ids, seeds))
 
-        exp.record_metric(scores)
-        logger.debug(f'mean: {np.mean(scores)}\n')
+        score_map = partition(zip(config_ids, scores))
+        for config_id, score in score_map.items():
+            s = np.mean(score)
+            exp.record_metric(config_id, float(s))
+
+            logger.debug('-' * 30)
+            logger.debug(f'{config_id}')
+            logger.debug(exp.get_flat_hypers(config_id))
+            logger.debug(score)
