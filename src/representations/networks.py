@@ -33,13 +33,17 @@ class NetworkBuilder:
 
         return _inner
 
-    def addHead(self, module: ModuleBuilder, name: Optional[str] = None):
+    def addHead(self, module: ModuleBuilder, name: Optional[str] = None, grad: bool = True):
         assert not self._retrieved_params, 'Attempted to add head after params have been retrieved'
         _state = {}
 
         def _builder(x: jax.Array | np.ndarray):
             head = module()
             _state['name'] = getattr(head, 'name', None)
+
+            if not grad:
+                x = jax.lax.stop_gradient(x)
+
             out = head(x)
             return out
 

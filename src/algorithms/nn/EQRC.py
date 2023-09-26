@@ -27,8 +27,8 @@ class EQRC(NNAgent):
     # ------------------------
     def _build_heads(self, builder: NetworkBuilder) -> None:
         zero_init = hk.initializers.Constant(0)
-        self.q = builder.addHead(lambda: hku.DuelingHeads(self.actions, name='q', optimistic=True))
-        self.h = builder.addHead(lambda: hku.DuelingHeads(self.actions, name='h', w_init=zero_init, b_init=zero_init))
+        self.q = builder.addHead(lambda: hku.DuelingHeads(self.actions, name='q', w_init=zero_init, b_init=zero_init))
+        self.h = builder.addHead(lambda: hku.DuelingHeads(self.actions, name='h', w_init=zero_init, b_init=zero_init), grad=False)
 
     # jit'ed internal value function approximator
     # considerable speedup, especially for larger networks (note: haiku networks are not jit'ed by default)
