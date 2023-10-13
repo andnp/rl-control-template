@@ -6,7 +6,8 @@ import utils.chex as cxu
 from abc import abstractmethod
 from typing import Any, Dict, Tuple
 from PyExpUtils.collection.Collector import Collector
-from ReplayTables.ReplayBuffer import ReplayBuffer, Timestep
+from ReplayTables.ReplayBuffer import Timestep
+from ..buffers.registry import getBufferBuilder
 
 from algorithms.BaseAgent import BaseAgent
 from representations.networks import NetworkBuilder
@@ -58,12 +59,9 @@ class NNAgent(BaseAgent):
         self.batch_size = params['batch']
         self.update_freq = params.get('update_freq', 1)
 
-        # TODO: add a replay buffer registry with configuration deserialized from exp
-        self.buffer = ReplayBuffer(
-            max_size=self.buffer_size,
-            lag=self.n_step,
-            rng=self.rng,
-        )
+        _buffer, _config = getBufferBuilder(params['buffer_type'])
+        self.bc = params.get('buffer_config', {})
+        self.buffer = _buffer(self.buffer_size, self.n_step, self.rng, _config(**self.bc), self.collector)
 
         # --------------------------
         # -- Stateful information --
