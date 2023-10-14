@@ -52,6 +52,11 @@ class EQRC(NNAgent):
         self.state, metrics = self._computeUpdate(self.state, batch)
 
         metrics = jax.device_get(metrics)
+
+        priorities = metrics['delta']
+        priorities = np.abs(priorities)
+        self.buffer.update_priorities(batch, priorities)
+
         for k, v in metrics.items():
             self.collector.collect(k, np.mean(v).item())
 

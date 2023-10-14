@@ -1,12 +1,12 @@
 {
     "agent": "DQN",
     "problem": "MountainCar",
-    "total_steps": 100000,
-    "episode_cutoff": 5000,
+    "total_steps": 200000,
+    "episode_cutoff": 250,
     "metaParameters": {
         "epsilon": 0.1,
         "target_refresh": 128,
-        "buffer_type": "per",
+        "buffer_type": ["iid", "per", "pser", "backwards"],
         "buffer_size": 4000,
         "batch": 32,
         "n_step": 3,

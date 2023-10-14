@@ -1,7 +1,6 @@
 from functools import partial
 from typing import Any, Dict, Tuple
 from PyExpUtils.collection.Collector import Collector
-from ReplayTables.PER import PrioritizedReplay
 from ReplayTables.ReplayBuffer import Batch
 
 from algorithms.nn.NNAgent import NNAgent
@@ -76,10 +75,9 @@ class DQN(NNAgent):
 
         metrics = jax.device_get(metrics)
 
-        if isinstance(self.buffer, PrioritizedReplay):
-            priorities = metrics['delta']
-            priorities = np.abs(priorities)
-            self.buffer.update_priorities(batch, priorities)
+        priorities = metrics['delta']
+        priorities = np.abs(priorities)
+        self.buffer.update_priorities(batch, priorities)
 
         for k, v in metrics.items():
             self.collector.collect(k, np.mean(v).item())

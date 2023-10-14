@@ -6,10 +6,10 @@
     "metaParameters": {
         "epsilon": 0.01,
         "target_refresh": 32,
+        "buffer_type": "per",
         "buffer_size": 10000,
         "batch": 32,
         "update_freq": 4,
-        "use_per": true,
 
         "optimizer": {
             "name": "ADAM",
