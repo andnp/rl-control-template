@@ -38,14 +38,10 @@ import jax
 device = 'gpu' if args.gpu else 'cpu'
 jax.config.update('jax_platform_name', device)
 
-logging.getLogger('absl').setLevel(logging.ERROR)
-logging.getLogger('filelock').setLevel(logging.ERROR)
-logging.getLogger('numba').setLevel(logging.WARNING)
-logging.getLogger('jax').setLevel(logging.WARNING)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger('exp')
 prod = 'cdr' in socket.gethostname() or args.silent
 if not prod:
-    logging.basicConfig(level=logging.DEBUG)
     logger.setLevel(logging.DEBUG)
 
 
