@@ -6,7 +6,7 @@
     "metaParameters": {
         "epsilon": 0.1,
         "target_refresh": 128,
-        "buffer_type": "iid",
+        "buffer_type": "uniform",
         "buffer_size": 4000,
         "batch": 32,
 

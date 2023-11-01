@@ -17,7 +17,7 @@ dqn = f"""{{
         }},
 
         "epsilon": 0.01,
-        "buffer_type": "iid",
+        "buffer_type": "uniform",
         "buffer_size": {200_000},
         "batch": 32,
         "target_refresh": 40000,

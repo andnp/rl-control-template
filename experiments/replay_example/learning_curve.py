@@ -25,7 +25,7 @@ from experiment.tools import parseCmdLineArgs
 setDefaultConference('jmlr')
 
 COLORS = {
-    'iid': 'blue',
+    'uniform': 'blue',
     'per': 'red',
     'pser': 'green',
     'backwards': 'grey',

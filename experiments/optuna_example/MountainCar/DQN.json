@@ -9,7 +9,7 @@
     "configuration_definitions": {
         "epsilon": { "t": "f", "lo": 0, "hi": 0.2 },
         "target_refresh": { "t": "i", "lo": 1, "hi": 4096, "log": true },
-        "buffer_type": "iid",
+        "buffer_type": "uniform",
         "buffer_size": { "t": "i", "lo": 500, "hi": 10000 },
         "batch": { "t": "i", "lo": 4, "hi": 32 },
         "update_freq": { "t": "i", "lo": 1, "hi": 4 },

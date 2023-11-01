@@ -6,8 +6,8 @@ import utils.chex as cxu
 from abc import abstractmethod
 from typing import Any, Dict, Tuple
 from PyExpUtils.collection.Collector import Collector
-from ReplayTables.ReplayBuffer import Timestep
-from ..buffers.registry import getBufferBuilder
+from ReplayTables.interface import Timestep
+from ReplayTables.registry import build_buffer
 
 from algorithms.BaseAgent import BaseAgent
 from representations.networks import NetworkBuilder
@@ -59,9 +59,13 @@ class NNAgent(BaseAgent):
         self.batch_size = params['batch']
         self.update_freq = params.get('update_freq', 1)
 
-        _buffer, _config = getBufferBuilder(params['buffer_type'])
-        self.bc = params.get('buffer_config', {})
-        self.buffer = _buffer(self.buffer_size, self.n_step, self.rng, _config(**self.bc), self.collector)
+        self.buffer = build_buffer(
+            buffer_type=params['buffer_type'],
+            max_size=self.buffer_size,
+            lag=self.n_step,
+            rng=self.rng,
+            config=params.get('buffer_config', {}),
+        )
 
         # --------------------------
         # -- Stateful information --
