@@ -63,7 +63,7 @@ select = ['F', 'E', 'W', 'B']
 ignore = ['E501', 'E701', 'B023']
 
 [tool.pyright]
-include = ['rl-control-template']
+include = ['.']
 venvPath = '.'
 venv = '.venv'
 typeCheckingMode = 'standard'
