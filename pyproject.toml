@@ -1,0 +1,46 @@
+[build-system]
+requires = ['setuptools']
+
+[project]
+name = 'rl-control-template'
+version = '0.0.0'
+description = ''
+authors = [
+    {name = 'Parham Panahi', email = 'parham1@ualberta.ca'},
+    {name = 'Andy Patterson', email = 'ap3@ualberta.ca'},
+    {name = 'Niko Yasui', email = 'yasuiniko@gmail.com'}
+]
+requires-python = '>=3.11'
+readme = 'README.md'
+license = {text = 'MIT'}
+classifiers = [
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Programming Language :: Python :: Implementation :: PyPy',
+]
+dependencies = [
+    # custom minatar with jit compiled environments
+    'MinAtar @ git+https://github.com/andnp/MinAtar',
+    'foragerenv @ git+https://github.com/andnp/forager',
+    
+    'gymnasium[atari,accept-rom-license]>=0.24.1',
+    'pillow',
+    'box2d-py>=2.3.2',
+    'numba>=0.55.0',
+    'chex>=0.1.5',
+    'jax>=0.2.14',
+    'dm-haiku>=0.0.4',
+    'optax>=0.0.8',
+    'numpy>=1.22.0',
+    'PyFixedReps-andnp~=4.0',
+    'PyExpUtils-andnp~=7.0',
+    'pyrlenvs-andnp~=2.0',
+    'ReplayTables-andnp~=6.0',
+    'RlGlue-andnp~=1.0',
+    'RlEvaluation~=1.0',
+    'PyExpPlotting-andnp',
+    'matplotlib',
+    'flake8',
+]
+
+
+
