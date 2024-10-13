@@ -23,6 +23,7 @@ dependencies = [
     'foragerenv @ git+https://github.com/andnp/forager',
     
     'gymnasium[atari,accept-rom-license]>=0.24.1',
+    'ale_py',
     'pillow',
     'box2d-py>=2.3.2',
     'numba>=0.55.0',
@@ -39,7 +40,6 @@ dependencies = [
     'RlEvaluation~=1.0',
     'PyExpPlotting-andnp',
     'matplotlib',
-    'flake8',
 ]
 
 [project.optional-dependencies]

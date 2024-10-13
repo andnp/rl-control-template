@@ -1,11 +1,13 @@
 import numpy as np
 import numba
 import gymnasium
+import ale_py
 from typing import Optional
 from collections import deque
 from PIL import Image
 from RlGlue.environment import BaseEnvironment
 
+gymnasium.register_envs(ale_py)
 
 class Atari(BaseEnvironment):
     def __init__(self, game: str, seed: int, max_steps: Optional[int] = None):
