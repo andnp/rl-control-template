@@ -7,6 +7,7 @@ from collections import deque
 from PIL import Image
 from RlGlue.environment import BaseEnvironment
 
+# add ALE envs to gym register for name lookup
 gymnasium.register_envs(ale_py)
 
 class Atari(BaseEnvironment):
