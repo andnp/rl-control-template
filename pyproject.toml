@@ -22,10 +22,9 @@ dependencies = [
     'MinAtar @ git+https://github.com/andnp/MinAtar',
     'foragerenv @ git+https://github.com/andnp/forager',
     
-    'gymnasium[atari,accept-rom-license]>=0.24.1',
+    'gymnasium[atari, box2d]>=1.0.0',
     'ale_py',
     'pillow',
-    'box2d-py>=2.3.2',
     'numba>=0.55.0',
     'chex>=0.1.5',
     'jax>=0.2.14',
