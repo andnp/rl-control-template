@@ -62,6 +62,13 @@ DEBUG:exp:13 11131 -243 0.7693ms 1299
 Let this run to completion, should only be a couple of minutes.
 This is your primary command to do fast iteration of code. Make your changes, call this script (though probably with a different `.json` file that corresponds to your experiment).
 
+
+To do experiments with continuing tasks or Optuna hyperparameter tuning, use:
+```bash
+python src/continuing_main.py -e experiments/continuing_example/Forager/EQRC.json -i  0
+python src/optuna_tuning.py -e experiments/optuna_example/MountainCar/DQN.json -i 0
+```
+
 ---
 ## Set up on compute canada
 This is much more difficult.
