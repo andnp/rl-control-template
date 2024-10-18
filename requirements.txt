@@ -1,6 +1,6 @@
 # custom minatar with jit compiled environments
-git+ssh://git@github.com/andnp/MinAtar
-git+ssh://git@github.com/andnp/forager
+git+https://github.com/andnp/MinAtar
+git+https://github.com/andnp/forager
 
 gymnasium[accept-rom-license,atari]>=0.24.1
 pillow
