@@ -28,6 +28,7 @@ Prereqs:
 * I assume you have python3.11 installed. If not, I strongly recommend setting up pyenv.
 * I assume you are familiar with virtual environments.
 * I assume you have rust installed. If not, I strongly recommend setting up rustup.
+* You must install swig globally to build box2d-py. For example, you can use [pipx](https://pipx.pypa.io/stable/installation/), `pipx install swig`, or [Homebrew](https://brew.sh), `brew install swig`. At this time the MacPorts versions of swig may have issues building box2d-py successfully. 
 
 Packages are stored in a `requirements.txt` file.
 To install:
