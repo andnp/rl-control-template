@@ -12,10 +12,14 @@ __pycache__
 
 .pdm-python
 pdm.lock
-pyproject.toml
 
 # ignore test experiments
 test.json
 
 # ignore editor settings
 .vscode
+
+# ignore build folder
+build
+build/
+**.egg-info/
