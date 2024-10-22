@@ -8,6 +8,7 @@ import socket
 import logging
 import argparse
 import numpy as np
+import jax
 from RlGlue import RlGlue
 from experiment import ExperimentModel
 from utils.checkpoint import Checkpoint
@@ -15,7 +16,7 @@ from utils.preempt import TimeoutHandler
 from problems.registry import getProblem
 from PyExpUtils.results.sqlite import saveCollector
 from PyExpUtils.collection.Collector import Collector
-from PyExpUtils.collection.Sampler import Ignore, MovingAverage, Subsample, Identity
+from PyExpUtils.collection.Sampler import Ignore, MovingAverage, Subsample
 from PyExpUtils.collection.utils import Pipe
 
 # ------------------
@@ -33,7 +34,6 @@ args = parser.parse_args()
 # ---------------------------
 # -- Library Configuration --
 # ---------------------------
-import jax
 jax.config.update('jax_platform_name', 'cpu')
 
 logging.getLogger('absl').setLevel(logging.ERROR)
@@ -97,6 +97,7 @@ for idx in indices:
         glue.start()
 
     for step in range(glue.total_steps, exp.total_steps):
+        collector.next_frame()
         chk.maybe_save()
         interaction = glue.step()
 
