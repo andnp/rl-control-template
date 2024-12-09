@@ -2,7 +2,7 @@ import numpy as np
 import numba
 import gymnasium
 import ale_py
-from typing import Optional
+from typing import Optional, cast
 from collections import deque
 from PIL import Image
 from RlGlue.environment import BaseEnvironment
@@ -12,15 +12,15 @@ gymnasium.register_envs(ale_py)
 
 class Atari(BaseEnvironment):
     def __init__(self, game: str, seed: int, max_steps: Optional[int] = None):
-        self.env = gymnasium.make(f'ALE/{game}-v5', max_episode_steps=max_steps, frameskip=5, repeat_action_probability=0.25)
-        # self.env = gym.make(f'ALE/{game}-v5', max_episode_steps=max_steps, render_mode='human')
+        self.env = gymnasium.make(f'ALE/{game}-v5', max_episode_steps=max_steps, frameskip=1, repeat_action_probability=0.0)
         self.seed = seed
-
         self.max_steps = max_steps
 
         # preprocessor state
         self._stacker = FrameStacker(size=4)
         self._last_lives = 0
+        self._frame_skip = 4
+        self._frame_buffer = deque(maxlen=2)
 
     def num_actions(self) -> int:
         space = self.env.action_space
@@ -31,30 +31,41 @@ class Atari(BaseEnvironment):
 
     def start(self):
         self._stacker.clear()
+        self._frame_buffer.clear()
         s, info = self.env.reset(seed=self.seed)
         self.seed += 1
-
         self._last_lives = info['lives']
+        self._frame_buffer.append(s)
 
-        s = process_image(s)
-        return self._stacker.next(s)
+        obs = self._frame_buffer[-1]
+        obs = process_image(obs) # grayscale and resize
+        return self._stacker.next(obs) # frame stacking
 
-    def step(self, a):
-        sp, r, t, _, info = self.env.step(a)
+    def step(self, action):
+        total_reward, terminated, gamma = 0.0, False, 1
 
-        gamma = 1
-        if info['lives'] < self._last_lives:
-            gamma = 0
-            self._last_lives = info['lives']
+        for frame in range(self._frame_skip):
+            sp, r, t, _, info = self.env.step(action)
+            total_reward += cast(float, r)
+            terminated = t
 
-        if t:
-            gamma = 0
+            if info['lives'] < self._last_lives:
+                self._last_lives = info['lives']
+                gamma = 0
+                break
 
-        # do preprocessing steps
-        sp = process_image(sp)
-        sp = self._stacker.next(sp)
+            if t:
+                gamma = 0
+                break
 
-        return (r, sp, t, {'gamma': gamma})
+            if frame == self._frame_skip - 2 or frame == self._frame_skip - 1:
+                self._frame_buffer.append(sp)
+
+        obs = np.maximum(self._frame_buffer[0], self._frame_buffer[1]) # max-pooling
+        obs = process_image(obs) # grayscale and resize
+        obs = self._stacker.next(obs) # frame stacking
+
+        return (total_reward, obs, terminated, {'gamma': gamma})
 
 class FrameStacker:
     def __init__(self, size: int):
