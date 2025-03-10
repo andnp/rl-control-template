@@ -1,0 +1,7 @@
+{
+    "type": "single_node",
+    "time": "2:59:00",
+    "cores": 12,
+    "mem_per_core": "4G",
+    "sequential": 4
+}

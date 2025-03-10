@@ -12,14 +12,14 @@ gymnasium.register_envs(ale_py)
 
 class Atari(BaseEnvironment):
     def __init__(self, game: str, seed: int, max_steps: Optional[int] = None):
-        self.env = gymnasium.make(f'ALE/{game}-v5', max_episode_steps=max_steps, frameskip=5, repeat_action_probability=0.25)
+        self.env = gymnasium.make(f'ALE/{game}-v5', max_episode_steps=max_steps, frameskip=None, repeat_action_probability=0.25)
         # self.env = gym.make(f'ALE/{game}-v5', max_episode_steps=max_steps, render_mode='human')
         self.seed = seed
 
         self.max_steps = max_steps
 
         # preprocessor state
-        self._stacker = FrameStacker(size=4)
+        self._prep = AtariProcessor()
         self._last_lives = 0
 
     def num_actions(self) -> int:
@@ -30,31 +30,69 @@ class Atari(BaseEnvironment):
         return getattr(space, 'n')
 
     def start(self):
-        self._stacker.clear()
+        self._prep.clear()
         s, info = self.env.reset(seed=self.seed)
         self.seed += 1
 
         self._last_lives = info['lives']
 
-        s = process_image(s)
-        return self._stacker.next(s)
+        s = self._prep.next(s)
+        return s
 
     def step(self, a):
-        sp, r, t, _, info = self.env.step(a)
+        total_r: float = 0
+        sp = None
+        t = False
+        gamma = 1.0
+        for _ in range(4):
+            sp, r, t, _, info = self.env.step(a)
 
-        gamma = 1
-        if info['lives'] < self._last_lives:
-            gamma = 0
-            self._last_lives = info['lives']
+            total_r += float(r)
+            gamma = 1
+            if info['lives'] < self._last_lives:
+                gamma = 0
+                self._last_lives = info['lives']
 
-        if t:
-            gamma = 0
+            # do preprocessing steps
+            sp = self._prep.next(sp)
 
-        # do preprocessing steps
-        sp = process_image(sp)
-        sp = self._stacker.next(sp)
+            if t:
+                gamma = 0
+                break
 
-        return (r, sp, t, {'gamma': gamma})
+        return (total_r, sp, t, {'gamma': gamma})
+
+
+class AtariProcessor:
+    def __init__(self):
+        self._stacker = FrameStacker(4)
+        self._maxer = FrameMax()
+
+    def clear(self):
+        self._stacker.clear()
+        self._maxer.clear()
+
+    def next(self, s):
+        s = process_image(s)
+        s = self._maxer.next(s)
+        s = self._stacker.next(s)
+        return s
+
+class FrameMax:
+    def __init__(self):
+        self._last: np.ndarray | None = None
+
+    def clear(self):
+        self._last = None
+
+    def next(self, obs: np.ndarray):
+        if self._last is None:
+            self._lost = obs
+            return obs
+
+        x = np.max(self._last, obs)
+        self._last = obs
+        return x
 
 class FrameStacker:
     def __init__(self, size: int):
