@@ -13,10 +13,10 @@ from experiment import ExperimentModel
 from utils.checkpoint import Checkpoint
 from utils.preempt import TimeoutHandler
 from problems.registry import getProblem
-from PyExpUtils.results.sqlite import saveCollector
-from PyExpUtils.collection.Collector import Collector
-from PyExpUtils.collection.Sampler import Ignore, MovingAverage, Subsample, Identity
-from PyExpUtils.collection.utils import Pipe
+
+from ml_instrumentation.Collector import Collector
+from ml_instrumentation.Sampler import Identity, Ignore, MovingAverage, Subsample
+from ml_instrumentation.utils import Pipe
 
 # ------------------
 # -- Command Args --
@@ -60,6 +60,7 @@ for idx in indices:
     timeout_handler.before_cancel(chk.save)
 
     collector = chk.build('collector', lambda: Collector(
+        # tmp_file='/mnt/i/tmp.db',
         # specify which keys to actually store and ultimately save
         # Options are:
         #  - Identity() (save everything)
@@ -77,7 +78,7 @@ for idx in indices:
         # by default, ignore keys that are not explicitly listed above
         default=Ignore(),
     ))
-    collector.setIdx(idx)
+    collector.set_experiment_id(idx)
     run = exp.getRun(idx)
 
     # set random seeds accordingly
@@ -129,5 +130,8 @@ for idx in indices:
     # ------------
     # -- Saving --
     # ------------
-    saveCollector(exp, collector, base=args.save_path)
+    context = exp.buildSaveContext(idx, base=args.save_path)
+    context.ensureExists()
+    collector.merge(context.resolve('results.db'))
+    collector.close()
     chk.delete()
