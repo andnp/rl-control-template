@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Any
-from RlGlue import BaseEnvironment
+from rlglue import BaseEnvironment
 from forager.Env import ForagerEnv
 from forager.config import ForagerConfig
 from forager.objects import Wall, Flower, Thorns
@@ -29,6 +29,6 @@ class Forager(BaseEnvironment):
         obs = self.env.start()
         return obs.astype(np.float32)
 
-    def step(self, a: int):
-        obs, r = self.env.step(a)
-        return (r, obs.astype(np.float32), False, {})
+    def step(self, action: int):
+        obs, r = self.env.step(action)
+        return (obs.astype(np.float32), r, False, False, {})

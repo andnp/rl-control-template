@@ -1,4 +1,4 @@
-from RlGlue import BaseEnvironment
+from rlglue import BaseEnvironment
 from minatar import Environment
 
 class Minatar(BaseEnvironment):
@@ -10,8 +10,8 @@ class Minatar(BaseEnvironment):
         s = self.env.state()
         return s.astype('float32')
 
-    def step(self, a):
-        r, t = self.env.act(a)
+    def step(self, action):
+        r, t = self.env.act(action)
         sp = self.env.state().astype('float32')
 
-        return (r, sp, t, {})
+        return (sp, r, t, False, {})

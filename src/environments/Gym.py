@@ -1,6 +1,6 @@
 from typing import Optional
 import gymnasium
-from RlGlue.environment import BaseEnvironment
+from rlglue.environment import BaseEnvironment
 
 class Gym(BaseEnvironment):
     def __init__(self, name: str, seed: int, max_steps: Optional[int] = None):
@@ -14,7 +14,6 @@ class Gym(BaseEnvironment):
         s, info = self.env.reset(seed=self.seed)
         return s
 
-    def step(self, a):
-        sp, r, t, _, info = self.env.step(a)
-
-        return (r, sp, t, {})
+    def step(self, action):
+        sp, r, t, trunc, info = self.env.step(action)
+        return sp, float(r), t, trunc, info

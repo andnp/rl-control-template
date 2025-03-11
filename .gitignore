@@ -12,6 +12,7 @@ __pycache__
 
 .pdm-python
 pdm.lock
+uv.lock
 
 # ignore test experiments
 test.json

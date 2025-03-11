@@ -1,6 +1,6 @@
 from functools import partial
 from typing import Any, Dict, Tuple
-from PyExpUtils.collection.Collector import Collector
+from ml_instrumentation.Collector import Collector
 from ReplayTables.ReplayBuffer import Batch
 
 from algorithms.nn.NNAgent import NNAgent
@@ -52,7 +52,7 @@ class DQN(NNAgent):
 
     # internal compiled version of the value function
     @partial(jax.jit, static_argnums=0)
-    def _values(self, state: AgentState, x: jax.Array):
+    def _values(self, state: AgentState, x: jax.Array): # type: ignore
         phi = self.phi(state.params, x).out
         return self.q(state.params, phi)
 
@@ -70,7 +70,7 @@ class DQN(NNAgent):
         self.updates += 1
 
         batch = self.buffer.sample(self.batch_size)
-        weights = self.buffer.isr_weights(batch.eid)
+        weights = self.buffer.isr_weights(batch.trans_id)
         self.state, metrics = self._computeUpdate(self.state, batch, weights)
 
         metrics = jax.device_get(metrics)

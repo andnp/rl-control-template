@@ -5,7 +5,7 @@ import ale_py
 from typing import Optional
 from collections import deque
 from PIL import Image
-from RlGlue.environment import BaseEnvironment
+from rlglue.environment import BaseEnvironment
 
 # add ALE envs to gym register for name lookup
 gymnasium.register_envs(ale_py)
@@ -27,7 +27,7 @@ class Atari(BaseEnvironment):
 
         # get around some faulty type-checking here
         assert hasattr(space, 'n')
-        return getattr(space, 'n')
+        return getattr(space, 'n', 0)
 
     def start(self):
         self._prep.clear()
@@ -39,13 +39,14 @@ class Atari(BaseEnvironment):
         s = self._prep.next(s)
         return s
 
-    def step(self, a):
+    def step(self, action: int):
         total_r: float = 0
         sp = None
         t = False
+        trunc = False
         gamma = 1.0
         for _ in range(4):
-            sp, r, t, _, info = self.env.step(a)
+            sp, r, t, trunc, info = self.env.step(action)
 
             total_r += float(r)
             gamma = 1
@@ -60,7 +61,7 @@ class Atari(BaseEnvironment):
                 gamma = 0
                 break
 
-        return (total_r, sp, t, {'gamma': gamma})
+        return (sp, total_r, t, trunc, {'gamma': gamma})
 
 
 class AtariProcessor:
@@ -118,7 +119,7 @@ class FrameStacker:
 
 def process_image(img: np.ndarray):
     gray = grayscale(img)
-    image = Image.fromarray(gray).resize((84, 84), Image.BILINEAR)
+    image = Image.fromarray(gray).resize((84, 84), Image.BILINEAR) # type: ignore
     return np.asarray(image, dtype=np.uint8)
 
 @numba.njit(cache=True, nogil=True, fastmath=True)

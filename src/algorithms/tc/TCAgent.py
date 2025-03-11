@@ -2,7 +2,7 @@ import numpy as np
 
 from abc import abstractmethod
 from typing import Any, Dict, Tuple
-from PyExpUtils.collection.Collector import Collector
+from ml_instrumentation.Collector import Collector
 from PyExpUtils.utils.random import sample
 from ReplayTables.interface import Timestep
 from ReplayTables.ingress.LagBuffer import LagBuffer
@@ -36,10 +36,10 @@ class TCAgent(BaseAgent):
     # ----------------------
     # -- RLGlue interface --
     # ----------------------
-    def start(self, s: np.ndarray):
+    def start(self, obs: np.ndarray):
         self.lag.flush()
 
-        x = self.rep.encode(s)
+        x = self.rep.encode(obs)
         pi = self.policy(x)
         a = sample(pi, rng=self.rng)
         self.lag.add(Timestep(
@@ -51,13 +51,13 @@ class TCAgent(BaseAgent):
         ))
         return a
 
-    def step(self, r: float, sp: np.ndarray | None, extra: Dict[str, Any]):
+    def step(self, reward: float, obs: np.ndarray | None, extra: Dict[str, Any]):
         a = -1
 
         # sample next action
         xp = None
-        if sp is not None:
-            xp = self.rep.encode(sp)
+        if obs is not None:
+            xp = self.rep.encode(obs)
             pi = self.policy(xp)
             a = sample(pi, rng=self.rng)
 
@@ -67,7 +67,7 @@ class TCAgent(BaseAgent):
         interaction = Timestep(
             x=xp,
             a=a,
-            r=r,
+            r=reward,
             gamma=self.gamma * gamma,
             terminal=False,
         )
@@ -83,11 +83,11 @@ class TCAgent(BaseAgent):
 
         return a
 
-    def end(self, r: float, extra: Dict[str, Any]):
+    def end(self, reward: float, extra: Dict[str, Any]):
         interaction = Timestep(
             x=None,
             a=-1,
-            r=r,
+            r=reward,
             gamma=0,
             terminal=True,
         )

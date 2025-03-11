@@ -1,6 +1,6 @@
 import numpy as np
 from PyRlEnvs.domains.Cartpole import Cartpole as Env
-from PyExpUtils.collection.Collector import Collector
+from ml_instrumentation.Collector import Collector
 from experiment.ExperimentModel import ExperimentModel
 from problems.BaseProblem import BaseProblem
 

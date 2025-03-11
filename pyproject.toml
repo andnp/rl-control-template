@@ -21,7 +21,6 @@ dependencies = [
     # custom minatar with jit compiled environments
     'MinAtar @ git+https://github.com/andnp/MinAtar',
     'foragerenv @ git+https://github.com/andnp/forager',
-    
     'gymnasium[atari, box2d]>=1.0.0',
     'optuna',
     'ale_py',
@@ -33,16 +32,17 @@ dependencies = [
     'optax>=0.0.8',
     'numpy>=1.22.0',
     'PyFixedReps-andnp~=4.0',
-    'PyExpUtils-andnp~=7.0',
+    'PyExpUtils-andnp~=8.0',
     'pyrlenvs-andnp~=2.0',
-    'ReplayTables-andnp~=6.0',
-    'RlGlue-andnp~=1.0',
+    'ReplayTables-andnp~=8.0',
+    'RlGlue-andnp~=2.0',
     'RlEvaluation~=1.0',
     'PyExpPlotting-andnp',
     'matplotlib',
+    "ml-instrument>=0.3.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     'pip',
     'ruff',
@@ -68,6 +68,3 @@ venvPath = '.'
 venv = '.venv'
 typeCheckingMode = 'standard'
 useLibraryCodeForTypes = true
-
-
-

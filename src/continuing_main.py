@@ -1,4 +1,3 @@
-import Box2D     # we need to import this first because cedar is stupid
 import os
 import sys
 sys.path.append(os.getcwd())
@@ -9,15 +8,16 @@ import logging
 import argparse
 import numpy as np
 import jax
-from RlGlue import RlGlue
+from rlglue import RlGlue
 from experiment import ExperimentModel
 from utils.checkpoint import Checkpoint
 from utils.preempt import TimeoutHandler
 from problems.registry import getProblem
-from PyExpUtils.results.sqlite import saveCollector
-from PyExpUtils.collection.Collector import Collector
-from PyExpUtils.collection.Sampler import Ignore, MovingAverage, Subsample
-from PyExpUtils.collection.utils import Pipe
+from PyExpUtils.results.tools import getParamsAsDict
+from ml_instrumentation.Collector import Collector
+from ml_instrumentation.Sampler import Ignore, MovingAverage, Subsample
+from ml_instrumentation.utils import Pipe
+from ml_instrumentation.metadata import attach_metadata
 
 # ------------------
 # -- Command Args --
@@ -76,7 +76,7 @@ for idx in indices:
         # by default, ignore keys that are not explicitly listed above
         default=Ignore(),
     ))
-    collector.setIdx(idx)
+    collector.set_experiment_id(idx)
     run = exp.getRun(idx)
 
     # set random seeds accordingly
@@ -101,18 +101,23 @@ for idx in indices:
         chk.maybe_save()
         interaction = glue.step()
 
-        collector.collect('reward', interaction.r)
+        collector.collect('reward', interaction.reward)
 
         if step % 500 == 0 and step > 0:
             avg_time = 1000 * (time.time() - start_time) / (step + 1)
             fps = step / (time.time() - start_time)
 
-            avg_reward = collector.get_last('reward')
-            logger.debug(f'{step} {avg_reward} {avg_time:.4}ms {int(fps)}')
+            logger.debug(f'{step} {avg_time:.4}ms {int(fps)}')
 
     collector.reset()
     # ------------
     # -- Saving --
     # ------------
-    saveCollector(exp, collector, base=args.save_path)
+    context = exp.buildSaveContext(idx, base=args.save_path)
+    save_path = context.resolve('results.db')
+    meta = getParamsAsDict(exp, idx)
+    meta |= {'seed': exp.getRun(idx)}
+    attach_metadata(save_path, idx, meta)
+    collector.merge(context.resolve('results.db'))
+    collector.close()
     chk.delete()

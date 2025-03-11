@@ -1,6 +1,6 @@
 from functools import partial
 from typing import Dict, Tuple
-from PyExpUtils.collection.Collector import Collector
+from ml_instrumentation.Collector import Collector
 from ReplayTables.interface import Batch
 
 from algorithms.nn.NNAgent import NNAgent, AgentState
@@ -33,7 +33,7 @@ class EQRC(NNAgent):
     # jit'ed internal value function approximator
     # considerable speedup, especially for larger networks (note: haiku networks are not jit'ed by default)
     @partial(jax.jit, static_argnums=0)
-    def _values(self, state: AgentState, x: jax.Array):
+    def _values(self, state: AgentState, x: jax.Array): # type: ignore
         phi = self.phi(state.params, x).out
         return self.q(state.params, phi)
 
@@ -76,7 +76,7 @@ class EQRC(NNAgent):
         decay = tree_map(
             lambda h, dh: dh - self.stepsize * self.beta * h,
             params['h'],
-            updates['h'],
+            updates['h'], # type: ignore
         )
 
         updates |= {'h': decay}
