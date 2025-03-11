@@ -30,7 +30,7 @@ dependencies = [
     'jax>=0.2.14',
     'dm-haiku>=0.0.4',
     'optax>=0.0.8',
-    'numpy>=1.22.0',
+    'numpy>=2.0.0',
     'PyFixedReps-andnp~=4.0',
     'PyExpUtils-andnp~=8.0',
     'pyrlenvs-andnp~=2.0',
@@ -39,7 +39,7 @@ dependencies = [
     'RlEvaluation~=1.0',
     'PyExpPlotting-andnp',
     'matplotlib',
-    "ml-instrument>=0.3.0",
+    "ml-instrument>=0.3.1",
 ]
 
 [dependency-groups]
