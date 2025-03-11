@@ -22,6 +22,8 @@ setDefaultConference('jmlr')
 COLORS = {
     'DQN': 'tab:blue',
     'EQRC': 'purple',
+    'ESARSA': 'tab:orange',
+    'SoftmaxAC': 'tab:green',
 }
 
 
